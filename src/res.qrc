@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>res/icon/cloud-app-icon.svg</file>
+        <file>res/icon/cloud-logo.svg</file>
+        <file>res/icon/cloud-ui-icon.svg</file>
+        <file>res/icon/cloud-app-icon.ico</file>
+    </qresource>
+</RCC>

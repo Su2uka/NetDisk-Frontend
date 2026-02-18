@@ -4,5 +4,8 @@
         <file>App.qml</file>
         <file>qml/Page/LoginPage.qml</file>
         <file>logo.ico</file>
+        <file>qml/Component/Login/LoginPanel.qml</file>
+        <file>qml/Component/Common/LeftIconTextBox.qml</file>
+        <file>qml/Component/Login/RegisterPanel.qml</file>
     </qresource>
 </RCC>

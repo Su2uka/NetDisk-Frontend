@@ -4,5 +4,6 @@
         <file>res/icon/cloud-logo.svg</file>
         <file>res/icon/cloud-ui-icon.svg</file>
         <file>res/icon/cloud-app-icon.ico</file>
+        <file>res/icon/cloud-app-icon.png</file>
     </qresource>
 </RCC>

@@ -21,8 +21,10 @@ QtObject {
     property Component editDelegate
     property var extra
     property bool showEdit
+    property var textColor: undefined
+    property var iconColor: undefined
     signal tap
     Component.onCompleted: {
-        key = FluTools.uuid()
+        key = FluTools.uuid();
     }
 }

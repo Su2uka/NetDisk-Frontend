@@ -16,13 +16,46 @@ else()
     set(APPLICATION_DIR_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick QuickControls2)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Quick QuickControls2)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick Network QuickControls2 Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Quick Network QuickControls2 Concurrent)
 
 
 set(PROJECT_SOURCES
     main.cpp
     qml.qrc
+    controller/logincontroller.h
+    controller/logincontroller.cpp
+    controller/filecontroller.h
+    controller/filecontroller.cpp
+    controller/uploadcontroller.h
+    controller/uploadcontroller.cpp
+    controller/downloadcontroller.h
+    controller/downloadcontroller.cpp
+    controller/recyclebincontroller.h
+    controller/recyclebincontroller.cpp
+    controller/usercontroller.h
+    controller/usercontroller.cpp
+    controller/sharecontroller.h
+    controller/sharecontroller.cpp
+    controller/clipboardcontroller.h
+    controller/clipboardcontroller.cpp
+    controller/mysharecontroller.h
+    controller/mysharecontroller.cpp
+    controller/favoritescontroller.h
+    controller/favoritescontroller.cpp
+    service/transferhistorymanager.h
+    service/transferhistorymanager.cpp
+    service/uploadstatemanager.h
+    service/uploadstatemanager.cpp
+    model/filelistmodel.h
+    model/filelistmodel.cpp
+    model/uploadlistmodel.h
+    model/uploadlistmodel.cpp
+    model/downloadlistmodel.h
+    model/downloadlistmodel.cpp
+    network/networkmanager.h
+    network/networkmanager.cpp
+    global/AppConfig.h
 )
 
 if(WIN32)
@@ -44,7 +77,9 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Quick
+    Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::QuickControls2
+    Qt${QT_VERSION_MAJOR}::Concurrent
     fluentuiplugin
 )
 

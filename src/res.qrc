@@ -5,5 +5,33 @@
         <file>res/icon/cloud-ui-icon.svg</file>
         <file>res/icon/cloud-app-icon.ico</file>
         <file>res/icon/cloud-app-icon.png</file>
+        <file>res/icon/transmission.svg</file>
+    </qresource>
+    <qresource prefix="/html">
+        <file>res/html/service.html</file>
+    </qresource>
+    <qresource prefix="/img">
+        <file>res/image/User.svg</file>
+    </qresource>
+    <qresource prefix="/file_type">
+        <file>res/file_type/ft-apk.svg</file>
+        <file>res/file_type/ft-apple-pkg.svg</file>
+        <file>res/file_type/ft-archive.svg</file>
+        <file>res/file_type/ft-audio.svg</file>
+        <file>res/file_type/ft-cad.svg</file>
+        <file>res/file_type/ft-code.svg</file>
+        <file>res/file_type/ft-excel.svg</file>
+        <file>res/file_type/ft-exe.svg</file>
+        <file>res/file_type/ft-folder.svg</file>
+        <file>res/file_type/ft-image.svg</file>
+        <file>res/file_type/ft-iso.svg</file>
+        <file>res/file_type/ft-pdf.svg</file>
+        <file>res/file_type/ft-ppt.svg</file>
+        <file>res/file_type/ft-psd.svg</file>
+        <file>res/file_type/ft-text.svg</file>
+        <file>res/file_type/ft-unknown.svg</file>
+        <file>res/file_type/ft-video.svg</file>
+        <file>res/file_type/ft-web.svg</file>
+        <file>res/file_type/ft-word.svg</file>
     </qresource>
 </RCC>

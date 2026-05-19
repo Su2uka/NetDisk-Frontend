@@ -6,6 +6,8 @@ import QtQuick.Layouts
 import FluentUI
 
 Item {
+    id: control
+    property color navBackgroundColor: "transparent"
     property url logo
     property string title: ""
     property FluObject items
@@ -26,174 +28,175 @@ Item {
     property alias buttonBack: btn_back
     property alias imageLogo: image_logo
     signal logoClicked
-    id:control
-    Item{
-        id:d
-        property bool animDisabled:false
+    Item {
+        id: d
+        property bool animDisabled: false
         property var stackItems: []
         property int displayMode: control.displayMode
         property bool enableNavigationPanel: false
         property bool isCompact: d.displayMode === FluNavigationViewType.Compact
         property bool isMinimal: d.displayMode === FluNavigationViewType.Minimal
         property bool isCompactAndPanel: d.displayMode === FluNavigationViewType.Compact && d.enableNavigationPanel
-        property bool isCompactAndNotPanel:d.displayMode === FluNavigationViewType.Compact && !d.enableNavigationPanel
+        property bool isCompactAndNotPanel: d.displayMode === FluNavigationViewType.Compact && !d.enableNavigationPanel
         property bool isMinimalAndPanel: d.displayMode === FluNavigationViewType.Minimal && d.enableNavigationPanel
-        property color itemDisableColor: FluTheme.dark ? Qt.rgba(131/255,131/255,131/255,1) : Qt.rgba(160/255,160/255,160/255,1)
+        property color itemDisableColor: FluTheme.dark ? Qt.rgba(131 / 255, 131 / 255, 131 / 255, 1) : Qt.rgba(160 / 255, 160 / 255, 160 / 255, 1)
         onIsCompactAndNotPanelChanged: {
-            collapseAll()
+            collapseAll();
         }
-        function handleItems(){
-            var _idx = 0
-            var data = []
+        function handleItems() {
+            var _idx = 0;
+            var data = [];
             var comEmpty = Qt.createComponent("FluPaneItemEmpty.qml");
-            if(items){
-                for(var i=0;i<items.children.length;i++){
-                    var item = items.children[i]
-                    if(item.visible !== true){
-                        continue
+            if (items) {
+                for (var i = 0; i < items.children.length; i++) {
+                    var item = items.children[i];
+                    if (item.visible !== true) {
+                        continue;
                     }
-                    item._idx = _idx
-                    data.push(item)
-                    _idx++
-                    if(item instanceof FluPaneItemExpander){
-                        for(var j=0;j<item.children.length;j++){
-                            var itemChild = item.children[j]
-                            if(itemChild.visible !== true){
-                                continue
+                    item._idx = _idx;
+                    data.push(item);
+                    _idx++;
+                    if (item instanceof FluPaneItemExpander) {
+                        for (var j = 0; j < item.children.length; j++) {
+                            var itemChild = item.children[j];
+                            if (itemChild.visible !== true) {
+                                continue;
                             }
-                            itemChild._parent = item
-                            itemChild._idx = _idx
-                            data.push(itemChild)
-                            _idx++
+                            itemChild._parent = item;
+                            itemChild._idx = _idx;
+                            data.push(itemChild);
+                            _idx++;
                         }
                     }
                 }
-                if(footerItems){
-                    for(var k=0;k<footerItems.children.length;k++){
-                        var itemFooter = footerItems.children[k]
-                        if(itemFooter.visible !== true){
-                            continue
+                if (footerItems) {
+                    for (var k = 0; k < footerItems.children.length; k++) {
+                        var itemFooter = footerItems.children[k];
+                        if (itemFooter.visible !== true) {
+                            continue;
                         }
-                        var objEmpty = comEmpty.createObject(items,{_idx:_idx});
+                        var objEmpty = comEmpty.createObject(items, {
+                            _idx: _idx
+                        });
                         itemFooter._idx = _idx;
-                        data.push(objEmpty)
-                        _idx++
+                        data.push(objEmpty);
+                        _idx++;
                     }
                 }
             }
-            return data
+            return data;
         }
-        function handleFooterItems(){
-            var data = []
-            if(footerItems){
-                for(var i=0;i<footerItems.children.length;i++){
-                    var item = footerItems.children[i]
-                    if(item.visible !== true){
-                        continue
+        function handleFooterItems() {
+            var data = [];
+            if (footerItems) {
+                for (var i = 0; i < footerItems.children.length; i++) {
+                    var item = footerItems.children[i];
+                    if (item.visible !== true) {
+                        continue;
                     }
-                    data.push(item)
+                    data.push(item);
                 }
             }
             return data;
         }
     }
     Component.onCompleted: {
-        d.displayMode = Qt.binding(function(){
-            if(control.displayMode !==FluNavigationViewType.Auto){
-                return control.displayMode
+        d.displayMode = Qt.binding(function () {
+            if (control.displayMode !== FluNavigationViewType.Auto) {
+                return control.displayMode;
             }
-            if(control.width<=700){
-                return FluNavigationViewType.Minimal
-            }else if(control.width<=900){
-                return FluNavigationViewType.Compact
-            }else{
-                return FluNavigationViewType.Open
+            if (control.width <= 700) {
+                return FluNavigationViewType.Minimal;
+            } else if (control.width <= 900) {
+                return FluNavigationViewType.Compact;
+            } else {
+                return FluNavigationViewType.Open;
             }
-        })
-        timer_anim_delay.restart()
+        });
+        timer_anim_delay.restart();
     }
-    Timer{
-        id:timer_anim_delay
+    Timer {
+        id: timer_anim_delay
         interval: 200
         onTriggered: {
-            d.animDisabled = true
+            d.animDisabled = true;
         }
     }
-    Connections{
+    Connections {
         target: d
-        function onDisplayModeChanged(){
-            if(d.displayMode === FluNavigationViewType.Compact){
-                collapseAll()
+        function onDisplayModeChanged() {
+            if (d.displayMode === FluNavigationViewType.Compact) {
+                collapseAll();
             }
-            d.enableNavigationPanel = false
-            if(loader_auto_suggest_box.item){
-                loader_auto_suggest_box.item.focus = false
+            d.enableNavigationPanel = false;
+            if (loader_auto_suggest_box.item) {
+                loader_auto_suggest_box.item.focus = false;
             }
         }
     }
-    Component{
-        id:com_panel_item_empty
-        Item{
+    Component {
+        id: com_panel_item_empty
+        Item {
             visible: false
         }
     }
-    Component{
-        id:com_panel_item_separatorr
-        FluDivider{
+    Component {
+        id: com_panel_item_separatorr
+        FluDivider {
             width: layout_list.width
             spacing: {
-                if(model){
-                    return model.spacing
+                if (model) {
+                    return model.spacing;
                 }
-                return 1
+                return 1;
             }
             size: {
-                if(!model){
-                    return 1
+                if (!model) {
+                    return 1;
                 }
-                if(model._parent){
-                    return model._parent.isExpand ? model.size : 0
+                if (model._parent) {
+                    return model._parent.isExpand ? model.size : 0;
                 }
-                return model.size
+                return model.size;
             }
         }
     }
-    Component{
-        id:com_panel_item_header
-        Item{
+    Component {
+        id: com_panel_item_header
+        Item {
             height: {
-                if(model._parent){
-                    return model._parent.isExpand ? control.cellHeight : 0
+                if (model._parent) {
+                    return model._parent.isExpand ? control.cellHeight : 0;
                 }
-                return  control.cellHeight
+                return control.cellHeight;
             }
             Behavior on height {
                 enabled: FluTheme.animationEnabled && d.animDisabled
-                NumberAnimation{
+                NumberAnimation {
                     duration: 83
                 }
             }
             width: layout_list.width
-            FluText{
-                text:model.title
+            FluText {
+                text: model.title
                 font: FluTextStyle.BodyStrong
-                anchors{
+                anchors {
                     bottom: parent.bottom
-                    left:parent.left
+                    left: parent.left
                     leftMargin: 10
                 }
             }
         }
     }
-    Component{
-        id:com_panel_item_expander
-        Item{
+    Component {
+        id: com_panel_item_expander
+        Item {
             height: control.cellHeight
             width: layout_list.width
-            FluControl{
-                id:item_control
+            FluControl {
+                id: item_control
                 enabled: !model.disabled
-                anchors{
+                anchors {
                     top: parent.top
                     bottom: parent.bottom
                     left: parent.left
@@ -208,216 +211,223 @@ Item {
                     visible: item_control.hovered && model.title && d.isCompactAndNotPanel
                     delay: 800
                 }
-                MouseArea{
+                MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.RightButton
-                    onClicked:
-                        (mouse) =>{
-                            if (mouse.button === Qt.RightButton) {
-                                if(model.menuDelegate){
-                                    loader_item_menu.sourceComponent = model.menuDelegate
-                                    connection_item_menu.target = loader_item_menu.item
-                                    loader_item_menu.modelData = model
-                                    loader_item_menu.item.popup();
-                                }
+                    onClicked: mouse => {
+                        if (mouse.button === Qt.RightButton) {
+                            if (model.menuDelegate) {
+                                loader_item_menu.sourceComponent = model.menuDelegate;
+                                connection_item_menu.target = loader_item_menu.item;
+                                loader_item_menu.modelData = model;
+                                loader_item_menu.item.popup();
                             }
                         }
-                    z:-100
+                    }
+                    z: -100
                 }
                 onClicked: {
-                    if(d.isCompactAndNotPanel && model.children.length > 0){
-                        let h = 38*Math.min(Math.max(model.children.length,1),8)
-                        let y = mapToItem(control,0,0).y
-                        if(h+y>control.height){
-                            y = control.height - h
+                    if (d.isCompactAndNotPanel && model.children.length > 0) {
+                        let h = 38 * Math.min(Math.max(model.children.length, 1), 8);
+                        let y = mapToItem(control, 0, 0).y;
+                        if (h + y > control.height) {
+                            y = control.height - h;
                         }
-                        control_popup.showPopup(Qt.point(control.navCompactWidth,y),h,model.children)
-                        return
+                        control_popup.showPopup(Qt.point(control.navCompactWidth, y), h, model.children);
+                        return;
                     }
-                    model.isExpand = !model.isExpand
+                    model.isExpand = !model.isExpand;
                 }
-                Rectangle{
-                    color:Qt.rgba(255/255,77/255,79/255,1)
+                Rectangle {
+                    color: Qt.rgba(255 / 255, 77 / 255, 79 / 255, 1)
                     width: 10
                     height: 10
                     radius: 5
                     border.width: 1
-                    border.color: Qt.rgba(1,1,1,1)
-                    anchors{
+                    border.color: Qt.rgba(1, 1, 1, 1)
+                    anchors {
                         right: parent.right
                         verticalCenter: parent.verticalCenter
                         rightMargin: 3
                         verticalCenterOffset: -8
                     }
                     visible: {
-                        if(!model){
-                            return false
+                        if (!model) {
+                            return false;
                         }
-                        if(!model.isExpand){
-                            for(var i=0;i<model.children.length;i++){
-                                var item = model.children[i]
-                                if(item.infoBadge && item.count !==0){
-                                    return true
+                        if (!model.isExpand) {
+                            for (var i = 0; i < model.children.length; i++) {
+                                var item = model.children[i];
+                                if (item.infoBadge && item.count !== 0) {
+                                    return true;
                                 }
                             }
                         }
-                        return false
+                        return false;
                     }
                 }
-                Rectangle{
+                Rectangle {
                     radius: 4
                     anchors.fill: parent
-                    Rectangle{
+                    Rectangle {
                         width: 3
                         height: 18
                         radius: 1.5
                         color: FluTheme.primaryColor
                         visible: {
-                            if(!model){
-                                return false
+                            if (!model) {
+                                return false;
                             }
-                            if(!model.children){
-                                return false
+                            if (!model.children) {
+                                return false;
                             }
-                            for(var i=0;i<model.children.length;i++){
-                                var item = model.children[i]
-                                if(item.visible !== true){
-                                    continue
+                            for (var i = 0; i < model.children.length; i++) {
+                                var item = model.children[i];
+                                if (item.visible !== true) {
+                                    continue;
                                 }
-                                if(item._idx === nav_list.currentIndex && !model.isExpand){
-                                    return true
+                                if (item._idx === nav_list.currentIndex && !model.isExpand) {
+                                    return true;
                                 }
                             }
-                            return false
+                            return false;
                         }
-                        anchors{
+                        anchors {
                             verticalCenter: parent.verticalCenter
                         }
                     }
-                    FluIcon{
-                        id:item_icon_expand
-                        rotation: model&&model.isExpand?0:180
-                        iconSource:FluentIcons.ChevronUp
+                    FluIcon {
+                        id: item_icon_expand
+                        rotation: model && model.isExpand ? 0 : 180
+                        iconSource: FluentIcons.ChevronUp
                         iconSize: 15
-                        anchors{
+                        anchors {
                             verticalCenter: parent.verticalCenter
                             right: parent.right
                             rightMargin: visible ? 12 : 0
                         }
                         visible: {
-                            if(d.isCompactAndNotPanel){
-                                return false
+                            if (d.isCompactAndNotPanel) {
+                                return false;
                             }
-                            return true
+                            return true;
                         }
                         Behavior on rotation {
                             enabled: FluTheme.animationEnabled && d.animDisabled
-                            NumberAnimation{
+                            NumberAnimation {
                                 duration: 167
                                 easing.type: Easing.OutCubic
                             }
                         }
                         color: {
-                            if(!item_control.enabled){
-                                return d.itemDisableColor
+                            if (!item_control.enabled) {
+                                return d.itemDisableColor;
                             }
-                            return FluTheme.dark ? "#FFFFFF" : "#000000"
+                            return FluTheme.dark ? "#FFFFFF" : "#000000";
                         }
                     }
                     color: {
-                        if(!item_control.enabled){
-                            return FluTheme.itemNormalColor
+                        if (!item_control.enabled) {
+                            return FluTheme.itemNormalColor;
                         }
-                        if(nav_list.currentIndex === _idx&&type===0){
-                            return FluTheme.itemCheckColor
+                        if (nav_list.currentIndex === _idx && type === 0) {
+                            return FluTheme.itemCheckColor;
                         }
-                        if(item_control.hovered){
-                            return FluTheme.itemHoverColor
+                        if (item_control.hovered) {
+                            return FluTheme.itemHoverColor;
                         }
-                        return FluTheme.itemNormalColor
+                        return FluTheme.itemNormalColor;
                     }
-                    Component{
-                        id:com_icon
-                        FluIcon{
+                    Component {
+                        id: com_icon
+                        FluIcon {
                             iconSource: {
-                                if(model&&model.icon){
-                                    return model.icon
+                                if (model && model.icon) {
+                                    return model.icon;
                                 }
-                                return 0
+                                return 0;
                             }
-                            iconSize: 15
+                            iconSize: 25
                             color: {
-                                if(!item_control.enabled){
-                                    return d.itemDisableColor
+                                if (model && model.iconColor !== undefined) {
+                                    return model.iconColor;
                                 }
-                                return FluTheme.dark ? "#FFFFFF" : "#000000"
+                                if (!item_control.enabled) {
+                                    return d.itemDisableColor;
+                                }
+                                return FluTheme.dark ? "#FFFFFF" : "#000000";
                             }
                         }
                     }
-                    Item{
-                        id:item_icon
+                    Item {
+                        id: item_icon
                         width: visible ? 30 : 8
                         height: 30
                         visible: {
-                            if(model){
-                                return model.iconVisible
+                            if (model) {
+                                return model.iconVisible;
                             }
-                            return true
+                            return true;
                         }
-                        anchors{
-                            left:parent.left
+                        anchors {
+                            left: parent.left
                             verticalCenter: parent.verticalCenter
-                            leftMargin: d.isCompactAndNotPanel ? (parent.width - 30)/2 : 3
+                            leftMargin: d.isCompactAndNotPanel ? (parent.width - 30) / 2 : 10
                         }
-                        FluLoader{
+                        FluLoader {
                             anchors.centerIn: parent
                             sourceComponent: {
-                                if(model&&model.iconDelegate){
-                                    return model.iconDelegate
+                                if (model && model.iconDelegate) {
+                                    return model.iconDelegate;
                                 }
-                                return com_icon
+                                return com_icon;
                             }
                         }
                     }
-                    FluText{
-                        id:item_title
-                        text:{
-                            if(model){
-                                if(!item_icon.visible && d.isCompactAndNotPanel){
-                                    return model.title[0]
+                    FluText {
+                        id: item_title
+                        font.pixelSize: 15
+                        text: {
+                            if (model) {
+                                if (!item_icon.visible && d.isCompactAndNotPanel) {
+                                    return model.title[0];
                                 }
-                                return model.title
+                                return model.title;
                             }
-                            return ""
+                            return "";
                         }
                         visible: {
-                            if(d.isCompactAndNotPanel){
-                                if(item_icon.visible){
-                                    return false
+                            if (d.isCompactAndNotPanel) {
+                                if (item_icon.visible) {
+                                    return false;
                                 }
-                                return true
+                                return true;
                             }
-                            return true
+                            return true;
                         }
                         elide: Text.ElideRight
-                        anchors{
+                        anchors {
                             verticalCenter: parent.verticalCenter
-                            left:item_icon.right
+                            left: item_icon.right
                             right: item_icon_expand.left
+                            leftMargin: 8
                         }
-                        color:{
-                            if(!item_control.enabled){
-                                return d.itemDisableColor
+                        color: {
+                            if (model && model.textColor !== undefined) {
+                                return model.textColor;
                             }
-                            if(item_control.pressed){
-                                return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120
+                            if (!item_control.enabled) {
+                                return d.itemDisableColor;
                             }
-                            return FluTheme.dark ? FluColors.White : FluColors.Grey220
+                            if (item_control.pressed) {
+                                return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120;
+                            }
+                            return FluTheme.dark ? FluColors.White : FluColors.Grey220;
                         }
                     }
-                    FluLoader{
-                        id:item_edit_loader
-                        anchors{
+                    FluLoader {
+                        id: item_edit_loader
+                        anchors {
                             top: parent.top
                             bottom: parent.bottom
                             left: item_title.left
@@ -425,28 +435,28 @@ Item {
                             rightMargin: 8
                         }
                         sourceComponent: {
-                            if(d.isCompact){
-                                return undefined
+                            if (d.isCompact) {
+                                return undefined;
                             }
-                            return model&&model.showEdit ? model.editDelegate : undefined
+                            return model && model.showEdit ? model.editDelegate : undefined;
                         }
                         onStatusChanged: {
-                            if(status === FluLoader.Ready){
-                                item.forceActiveFocus()
-                                item_connection_edit_focus.target = item
+                            if (status === FluLoader.Ready) {
+                                item.forceActiveFocus();
+                                item_connection_edit_focus.target = item;
                             }
                         }
-                        Connections{
-                            id:item_connection_edit_focus
-                            ignoreUnknownSignals:true
-                            function onActiveFocusChanged(focus){
-                                if(focus === false){
-                                    model.showEdit = false
+                        Connections {
+                            id: item_connection_edit_focus
+                            ignoreUnknownSignals: true
+                            function onActiveFocusChanged(focus) {
+                                if (focus === false) {
+                                    model.showEdit = false;
                                 }
                             }
-                            function onCommit(text){
-                                model.title = text
-                                model.showEdit = false
+                            function onCommit(text) {
+                                model.title = text;
+                                model.showEdit = false;
                             }
                         }
                     }
@@ -454,33 +464,35 @@ Item {
             }
         }
     }
-    Component{
-        id:com_panel_item
-        Item{
+    Component {
+        id: com_panel_item
+        Item {
             Behavior on height {
                 enabled: FluTheme.animationEnabled && d.animDisabled
-                NumberAnimation{
+                NumberAnimation {
                     duration: 167
                     easing.type: Easing.OutCubic
                 }
             }
             height: {
-                if(model&&model._parent){
-                    return model._parent.isExpand ? control.cellHeight : 0
+                if (model && model._parent) {
+                    return model._parent.isExpand ? control.cellHeight : 0;
                 }
-                return control.cellHeight
+                return control.cellHeight;
             }
             visible: control.cellHeight === Number(height)
             opacity: visible
             Behavior on opacity {
-                NumberAnimation { duration: 83 }
+                NumberAnimation {
+                    duration: 83
+                }
             }
             width: layout_list.width
-            FluControl{
+            FluControl {
+                id: item_control
                 property var modelData: model
-                id:item_control
                 enabled: !model.disabled
-                anchors{
+                anchors {
                     top: parent.top
                     bottom: parent.bottom
                     left: parent.left
@@ -495,152 +507,159 @@ Item {
                     visible: item_control.hovered && model.title && d.isCompactAndNotPanel
                     delay: 800
                 }
-                onClicked:{
-                    if(type === 0){
-                        if(model.onTapListener){
-                            model.onTapListener()
-                        }else{
-                            nav_list.currentIndex = _idx
-                            layout_footer.currentIndex = -1
-                            model.tap()
-                            if(d.isMinimal || d.isCompact){
-                                d.enableNavigationPanel = false
+                onClicked: {
+                    if (type === 0) {
+                        if (model.onTapListener) {
+                            model.onTapListener();
+                        } else {
+                            nav_list.currentIndex = _idx;
+                            layout_footer.currentIndex = -1;
+                            model.tap();
+                            if (d.isMinimal || d.isCompact) {
+                                d.enableNavigationPanel = false;
                             }
                         }
-                    }else{
-                        if(model.onTapListener){
-                            model.onTapListener()
-                        }else{
-                            nav_list.currentIndex = nav_list.count-layout_footer.count+_idx
-                            layout_footer.currentIndex = _idx
-                            model.tap()
-                            if(d.isMinimal || d.isCompact){
-                                d.enableNavigationPanel = false
+                    } else {
+                        if (model.onTapListener) {
+                            model.onTapListener();
+                        } else {
+                            nav_list.currentIndex = nav_list.count - layout_footer.count + _idx;
+                            layout_footer.currentIndex = _idx;
+                            model.tap();
+                            if (d.isMinimal || d.isCompact) {
+                                d.enableNavigationPanel = false;
                             }
                         }
                     }
                 }
-                MouseArea{
-                    id:item_mouse
+                MouseArea {
+                    id: item_mouse
                     anchors.fill: parent
                     acceptedButtons: Qt.RightButton | Qt.LeftButton
-                    onClicked:
-                        (mouse)=>{
-                            if (mouse.button === Qt.RightButton) {
-                                if(model.menuDelegate){
-                                    loader_item_menu.sourceComponent = model.menuDelegate
-                                    connection_item_menu.target = loader_item_menu.item
-                                    loader_item_menu.modelData = model
-                                    loader_item_menu.item.popup();
-                                }
-                            }else{
-                                item_control.clicked()
+                    onClicked: mouse => {
+                        if (mouse.button === Qt.RightButton) {
+                            if (model.menuDelegate) {
+                                loader_item_menu.sourceComponent = model.menuDelegate;
+                                connection_item_menu.target = loader_item_menu.item;
+                                loader_item_menu.modelData = model;
+                                loader_item_menu.item.popup();
                             }
+                        } else {
+                            item_control.clicked();
                         }
+                    }
                 }
-                Rectangle{
+                Rectangle {
                     radius: 4
                     anchors.fill: parent
                     color: {
-                        if(!item_control.enabled){
-                            return FluTheme.itemNormalColor
+                        if (!item_control.enabled) {
+                            return FluTheme.itemNormalColor;
                         }
-                        if(type===0){
-                            if(nav_list.currentIndex === _idx){
-                                return FluTheme.itemCheckColor
+                        if (type === 0) {
+                            if (nav_list.currentIndex === _idx) {
+                                return FluTheme.itemCheckColor;
                             }
-                        }else{
-                            if(nav_list.currentIndex === (nav_list.count-layout_footer.count+_idx)){
-                                return FluTheme.itemCheckColor
+                        } else {
+                            if (nav_list.currentIndex === (nav_list.count - layout_footer.count + _idx)) {
+                                return FluTheme.itemCheckColor;
                             }
                         }
-                        if(item_control.hovered){
-                            return FluTheme.itemHoverColor
+                        if (item_control.hovered) {
+                            return FluTheme.itemHoverColor;
                         }
-                        return FluTheme.itemNormalColor
+                        return FluTheme.itemNormalColor;
                     }
-                    Component{
-                        id:com_icon
-                        FluIcon{
+                    Component {
+                        id: com_icon
+                        FluIcon {
                             iconSource: {
-                                if(model&&model.icon){
-                                    return model.icon
+                                if (model && model.icon) {
+                                    return model.icon;
                                 }
-                                return 0
+                                return 0;
                             }
                             color: {
-                                if(!item_control.enabled){
-                                    return d.itemDisableColor
+                                if (model && model.iconColor !== undefined) {
+                                    return model.iconColor;
                                 }
-                                return FluTheme.dark ? "#FFFFFF" : "#000000"
+                                if (!item_control.enabled) {
+                                    return d.itemDisableColor;
+                                }
+                                return FluTheme.dark ? "#FFFFFF" : "#000000";
                             }
-                            iconSize: 15
+                            iconSize: 25
                         }
                     }
-                    Item{
-                        id:item_icon
+                    Item {
+                        id: item_icon
                         height: 30
                         width: visible ? 30 : 8
                         visible: {
-                            if(model){
-                                return model.iconVisible
+                            if (model) {
+                                return model.iconVisible;
                             }
-                            return true
+                            return true;
                         }
-                        anchors{
-                            left:parent.left
+                        anchors {
+                            left: parent.left
                             verticalCenter: parent.verticalCenter
-                            leftMargin: d.isCompactAndNotPanel ? (parent.width - 30)/2 : 3
+                            leftMargin: d.isCompactAndNotPanel ? (parent.width - 30) / 2 : 10
                         }
-                        FluLoader{
+                        FluLoader {
                             anchors.centerIn: parent
                             sourceComponent: {
-                                if(model&&model.iconDelegate){
-                                    return model.iconDelegate
+                                if (model && model.iconDelegate) {
+                                    return model.iconDelegate;
                                 }
-                                return com_icon
+                                return com_icon;
                             }
                         }
                     }
-                    FluText{
-                        id:item_title
-                        text:{
-                            if(model){
-                                if(!item_icon.visible && d.isCompactAndNotPanel){
-                                    return model.title[0]
+                    FluText {
+                        id: item_title
+                        font.pixelSize: 15
+                        text: {
+                            if (model) {
+                                if (!item_icon.visible && d.isCompactAndNotPanel) {
+                                    return model.title[0];
                                 }
-                                return model.title
+                                return model.title;
                             }
-                            return ""
+                            return "";
                         }
                         visible: {
-                            if(d.isCompactAndNotPanel){
-                                if(item_icon.visible){
-                                    return false
+                            if (d.isCompactAndNotPanel) {
+                                if (item_icon.visible) {
+                                    return false;
                                 }
-                                return true
+                                return true;
                             }
-                            return true
+                            return true;
                         }
                         elide: Text.ElideRight
-                        color:{
-                            if(!item_control.enabled){
-                                return d.itemDisableColor
+                        color: {
+                            if (model && model.textColor !== undefined) {
+                                return model.textColor;
                             }
-                            if(item_mouse.pressed){
-                                return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120
+                            if (!item_control.enabled) {
+                                return d.itemDisableColor;
                             }
-                            return FluTheme.dark ? FluColors.White : FluColors.Grey220
+                            if (item_mouse.pressed) {
+                                return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120;
+                            }
+                            return FluTheme.dark ? FluColors.White : FluColors.Grey220;
                         }
-                        anchors{
+                        anchors {
                             verticalCenter: parent.verticalCenter
-                            left:item_icon.right
+                            left: item_icon.right
                             right: item_dot_loader.left
+                            leftMargin: 8
                         }
                     }
-                    FluLoader{
-                        id:item_edit_loader
-                        anchors{
+                    FluLoader {
+                        id: item_edit_loader
+                        anchors {
                             top: parent.top
                             bottom: parent.bottom
                             left: item_title.left
@@ -648,54 +667,54 @@ Item {
                             rightMargin: 8
                         }
                         sourceComponent: {
-                            if(d.isCompact){
-                                return undefined
+                            if (d.isCompact) {
+                                return undefined;
                             }
-                            if(!model){
-                                return undefined
+                            if (!model) {
+                                return undefined;
                             }
-                            return model.showEdit ? model.editDelegate : undefined
+                            return model.showEdit ? model.editDelegate : undefined;
                         }
                         onStatusChanged: {
-                            if(status === FluLoader.Ready){
-                                item.forceActiveFocus()
-                                item_connection_edit_focus.target = item
+                            if (status === FluLoader.Ready) {
+                                item.forceActiveFocus();
+                                item_connection_edit_focus.target = item;
                             }
                         }
-                        Connections{
-                            id:item_connection_edit_focus
-                            ignoreUnknownSignals:true
-                            function onActiveFocusChanged(focus){
-                                if(focus === false){
-                                    model.showEdit = false
+                        Connections {
+                            id: item_connection_edit_focus
+                            ignoreUnknownSignals: true
+                            function onActiveFocusChanged(focus) {
+                                if (focus === false) {
+                                    model.showEdit = false;
                                 }
                             }
-                            function onCommit(text){
-                                model.title = text
-                                model.showEdit = false
+                            function onCommit(text) {
+                                model.title = text;
+                                model.showEdit = false;
                             }
                         }
                     }
-                    FluLoader{
-                        id:item_dot_loader
-                        property bool isDot: (item_dot_loader.item&&item_dot_loader.item.isDot)
-                        anchors{
+                    FluLoader {
+                        id: item_dot_loader
+                        property bool isDot: (item_dot_loader.item && item_dot_loader.item.isDot)
+                        anchors {
                             right: parent.right
                             verticalCenter: parent.verticalCenter
                             rightMargin: isDot ? 3 : 10
                             verticalCenterOffset: isDot ? -8 : 0
                         }
                         sourceComponent: {
-                            if(model&&model.infoBadge){
-                                return model.infoBadge
+                            if (model && model.infoBadge) {
+                                return model.infoBadge;
                             }
-                            return undefined
+                            return undefined;
                         }
-                        Connections{
+                        Connections {
                             target: d
-                            function onIsCompactAndNotPanelChanged(){
-                                if(item_dot_loader.item){
-                                    item_dot_loader.item.isDot = d.isCompactAndNotPanel
+                            function onIsCompactAndNotPanelChanged() {
+                                if (item_dot_loader.item) {
+                                    item_dot_loader.item.isDot = d.isCompactAndNotPanel;
                                 }
                             }
                         }
@@ -705,255 +724,257 @@ Item {
         }
     }
     Item {
-        id:nav_app_bar
+        id: nav_app_bar
         width: parent.width
         height: visible ? 40 : 0
-        anchors{
+        anchors {
             top: parent.top
             topMargin: control.topPadding
         }
         visible: !control.hideNavAppBar
-        z:999
-        RowLayout{
-            height:parent.height
+        z: 999
+        RowLayout {
+            height: parent.height
             spacing: 0
-            FluIconButton{
-                id:btn_back
+            FluIconButton {
+                id: btn_back
                 iconSource: FluentIcons.ChromeBack
                 Layout.leftMargin: 5
                 Layout.alignment: Qt.AlignVCenter
-                disabled:  {
-                    return d.stackItems.length <= 1
+                disabled: {
+                    return d.stackItems.length <= 1;
                 }
                 iconSize: 13
                 onClicked: {
-                    d.stackItems = d.stackItems.slice(0, -1)
-                    var item = d.stackItems[d.stackItems.length-1]
-                    if(item._idx<(nav_list.count - layout_footer.count)){
-                        layout_footer.currentIndex = -1
-                    }else{
-                        layout_footer.currentIndex = item._idx-(nav_list.count-layout_footer.count)
+                    d.stackItems = d.stackItems.slice(0, -1);
+                    var item = d.stackItems[d.stackItems.length - 1];
+                    if (item._idx < (nav_list.count - layout_footer.count)) {
+                        layout_footer.currentIndex = -1;
+                    } else {
+                        layout_footer.currentIndex = item._idx - (nav_list.count - layout_footer.count);
                     }
-                    nav_list.currentIndex = item._idx
-                    if(pageMode === FluNavigationViewType.Stack){
-                        var nav_stack = loader_content.item.navStack()
-                        var nav_stack2 = loader_content.item.navStack2()
-                        nav_stack.pop()
-                        if(nav_stack.currentItem.launchMode === FluPageType.SingleInstance){
-                            var url = nav_stack.currentItem.url
-                            var pageIndex = -1
-                            for(var i=0;i<nav_stack2.children.length;i++){
-                                var obj =  nav_stack2.children[i]
-                                if(obj.url === url){
-                                    pageIndex = i
-                                    break
+                    nav_list.currentIndex = item._idx;
+                    if (pageMode === FluNavigationViewType.Stack) {
+                        var nav_stack = loader_content.item.navStack();
+                        var nav_stack2 = loader_content.item.navStack2();
+                        nav_stack.pop();
+                        if (nav_stack.currentItem.launchMode === FluPageType.SingleInstance) {
+                            var url = nav_stack.currentItem.url;
+                            var pageIndex = -1;
+                            for (var i = 0; i < nav_stack2.children.length; i++) {
+                                var obj = nav_stack2.children[i];
+                                if (obj.url === url) {
+                                    pageIndex = i;
+                                    break;
                                 }
                             }
-                            if(pageIndex !== -1){
-                                nav_stack2.currentIndex = pageIndex
+                            if (pageIndex !== -1) {
+                                nav_stack2.currentIndex = pageIndex;
                             }
                         }
-                    }else if(pageMode === FluNavigationViewType.NoStack){
-                        loader_content.setSource(item._ext.url,item._ext.argument)
+                    } else if (pageMode === FluNavigationViewType.NoStack) {
+                        loader_content.setSource(item._ext.url, item._ext.argument);
                     }
                 }
             }
-            FluIconButton{
-                id:btn_menu
+            FluIconButton {
+                id: btn_menu
                 iconSource: FluentIcons.GlobalNavButton
-                iconSize: 15
+                iconSize: 25
                 Layout.preferredWidth: d.isMinimal ? 30 : 0
                 Layout.preferredHeight: 30
                 Layout.alignment: Qt.AlignVCenter
                 clip: true
                 onClicked: {
-                    d.enableNavigationPanel = !d.enableNavigationPanel
+                    d.enableNavigationPanel = !d.enableNavigationPanel;
                 }
                 visible: opacity
                 opacity: d.isMinimal
-                Behavior on opacity{
+                Behavior on opacity {
                     enabled: FluTheme.animationEnabled && d.animDisabled
-                    NumberAnimation{
+                    NumberAnimation {
                         duration: 83
                     }
                 }
                 Behavior on Layout.preferredWidth {
                     enabled: FluTheme.animationEnabled && d.animDisabled
-                    NumberAnimation{
+                    NumberAnimation {
                         duration: 167
                         easing.type: Easing.OutCubic
                     }
                 }
             }
-            Image{
-                id:image_logo
+            Image {
+                id: image_logo
                 Layout.preferredHeight: 20
                 Layout.preferredWidth: 20
                 source: control.logo
                 Layout.leftMargin: {
-                    if(btn_menu.visible){
-                        return 12
+                    if (btn_menu.visible) {
+                        return 12;
                     }
-                    return 5
+                    return 5;
                 }
-                sourceSize: Qt.size(40,40)
+                sourceSize: Qt.size(40, 40)
                 Layout.alignment: Qt.AlignVCenter
-                MouseArea{
+                MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        logoClicked()
+                        logoClicked();
                     }
                 }
             }
-            FluText{
+            FluText {
                 Layout.alignment: Qt.AlignVCenter
-                text:control.title
+                text: control.title
                 Layout.leftMargin: 12
                 font: FluTextStyle.Body
             }
         }
-        Item{
+        Item {
             anchors.right: parent.right
             height: parent.height
             width: {
-                if(loader_action.item){
-                    return loader_action.item.width
+                if (loader_action.item) {
+                    return loader_action.item.width;
                 }
-                return 0
+                return 0;
             }
-            FluLoader{
-                id:loader_action
+            FluLoader {
+                id: loader_action
                 anchors.centerIn: parent
                 sourceComponent: actionItem
             }
         }
     }
 
-    Component{
-        id:com_stack_content
-        Item{
-            StackView{
-                id:nav_stack
+    Component {
+        id: com_stack_content
+        Item {
+            StackView {
+                id: nav_stack
                 anchors.fill: parent
                 clip: true
                 visible: !nav_stack2.visible
-                popEnter : Transition{}
-                popExit : Transition {}
+                popEnter: Transition {}
+                popExit: Transition {}
                 pushEnter: Transition {}
-                pushExit : Transition{}
-                replaceEnter : Transition{}
-                replaceExit : Transition{}
+                pushExit: Transition {}
+                replaceEnter: Transition {}
+                replaceExit: Transition {}
             }
-            StackLayout{
-                id:nav_stack2
+            StackLayout {
+                id: nav_stack2
                 anchors.fill: nav_stack
                 clip: true
                 visible: {
-                    if(!nav_stack.currentItem){
-                        return false
+                    if (!nav_stack.currentItem) {
+                        return false;
                     }
-                    return FluPageType.SingleInstance === nav_stack.currentItem.launchMode
+                    return FluPageType.SingleInstance === nav_stack.currentItem.launchMode;
                 }
             }
-            function navStack(){
-                return nav_stack
+            function navStack() {
+                return nav_stack;
             }
-            function navStack2(){
-                return nav_stack2
+            function navStack2() {
+                return nav_stack2;
             }
         }
     }
-    FluLoader{
-        id:loader_content
-        anchors{
+    FluLoader {
+        id: loader_content
+        anchors {
             left: parent.left
             top: nav_app_bar.bottom
             right: parent.right
             bottom: parent.bottom
             leftMargin: {
-                if(d.isMinimal){
-                    return 0
+                if (d.isMinimal) {
+                    return 0;
                 }
-                if(d.isCompact){
-                    return control.navCompactWidth
+                if (d.isCompact) {
+                    return control.navCompactWidth;
                 }
-                return control.cellWidth
+                return control.cellWidth;
             }
         }
         Behavior on anchors.leftMargin {
             enabled: FluTheme.animationEnabled && d.animDisabled
-            NumberAnimation{
+            NumberAnimation {
                 duration: 167
                 easing.type: Easing.OutCubic
             }
         }
         sourceComponent: com_stack_content
     }
-    MouseArea{
+    MouseArea {
         anchors.fill: parent
-        visible: d.isMinimalAndPanel||d.isCompactAndPanel
+        visible: d.isMinimalAndPanel || d.isCompactAndPanel
         hoverEnabled: true
-        onWheel: {
-        }
+        onWheel: {}
         onClicked: {
-            d.enableNavigationPanel = false
+            d.enableNavigationPanel = false;
         }
     }
-    Rectangle{
-        id:layout_list
+    Rectangle {
+        id: layout_list
         width: {
-            if(d.isCompactAndNotPanel){
-                return control.navCompactWidth
+            if (d.isCompactAndNotPanel) {
+                return control.navCompactWidth;
             }
-            return control.cellWidth
+            return control.cellWidth;
         }
-        anchors{
+        anchors {
             top: parent.top
             topMargin: control.navTopMargin
             bottom: parent.bottom
         }
-        border.color: FluTheme.dark ? Qt.rgba(45/255,45/255,45/255,1) : Qt.rgba(226/255,230/255,234/255,1)
-        border.width:  d.isMinimal || d.isCompactAndPanel ? 1 : 0
+        border.color: FluTheme.dark ? Qt.rgba(45 / 255, 45 / 255, 45 / 255, 1) : Qt.rgba(226 / 255, 230 / 255, 234 / 255, 1)
+        border.width: d.isMinimal || d.isCompactAndPanel ? 1 : 0
         color: {
-            if(d.isMinimal || d.enableNavigationPanel){
-                return FluTheme.dark ? Qt.rgba(61/255,61/255,61/255,1) : Qt.rgba(243/255,243/255,243/255,1)
+            if (control.navBackgroundColor !== "transparent") {
+                return control.navBackgroundColor;
             }
-            return "transparent"
+            if (d.isMinimal || d.enableNavigationPanel) {
+                return FluTheme.dark ? Qt.rgba(61 / 255, 61 / 255, 61 / 255, 1) : Qt.rgba(243 / 255, 243 / 255, 243 / 255, 1);
+            }
+            return "transparent";
         }
-        FluShadow{
+        FluShadow {
             visible: d.isMinimal || d.isCompactAndPanel
             radius: 0
         }
         x: visible ? 0 : -width
         Behavior on width {
             enabled: FluTheme.animationEnabled && d.animDisabled
-            NumberAnimation{
+            NumberAnimation {
                 duration: 167
                 easing.type: Easing.OutCubic
             }
         }
         Behavior on x {
             enabled: FluTheme.animationEnabled && d.animDisabled
-            NumberAnimation{
+            NumberAnimation {
                 duration: 167
                 easing.type: Easing.OutCubic
             }
         }
         visible: {
-            if(d.displayMode !== FluNavigationViewType.Minimal)
-                return true
-            return d.isMinimalAndPanel  ? true : false
+            if (d.displayMode !== FluNavigationViewType.Minimal)
+                return true;
+            return d.isMinimalAndPanel ? true : false;
         }
-        Item{
-            id:layout_header
+        Item {
+            id: layout_header
             width: layout_list.width
             clip: true
-            y:nav_app_bar.height+control.topPadding
+            y: nav_app_bar.height + control.topPadding
             height: autoSuggestBox ? 38 : 0
-            FluLoader{
-                id:loader_auto_suggest_box
+            FluLoader {
+                id: loader_auto_suggest_box
                 sourceComponent: autoSuggestBox
-                anchors{
+                anchors {
                     left: parent.left
                     right: parent.right
                     leftMargin: 6
@@ -961,15 +982,15 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
                 visible: {
-                    if(d.isCompactAndNotPanel){
-                        return false
+                    if (d.isCompactAndNotPanel) {
+                        return false;
                     }
-                    return true
+                    return true;
                 }
             }
-            FluIconButton{
-                visible:d.isCompactAndNotPanel
-                anchors{
+            FluIconButton {
+                visible: d.isCompactAndNotPanel
+                anchors {
                     fill: parent
                     leftMargin: 6
                     rightMargin: 6
@@ -978,19 +999,19 @@ Item {
                 }
                 iconSize: 15
                 iconSource: {
-                    if(loader_auto_suggest_box.item){
-                        return loader_auto_suggest_box.item.autoSuggestBoxReplacement
+                    if (loader_auto_suggest_box.item) {
+                        return loader_auto_suggest_box.item.autoSuggestBoxReplacement;
                     }
-                    return 0
+                    return 0;
                 }
                 onClicked: {
-                    d.enableNavigationPanel = !d.enableNavigationPanel
+                    d.enableNavigationPanel = !d.enableNavigationPanel;
                 }
             }
         }
-        Flickable{
-            id:layout_flickable
-            anchors{
+        Flickable {
+            id: layout_flickable
+            anchors {
                 top: layout_header.bottom
                 topMargin: 6
                 left: parent.left
@@ -1001,8 +1022,8 @@ Item {
             clip: true
             contentHeight: nav_list.contentHeight
             ScrollBar.vertical: FluScrollBar {}
-            ListView{
-                id:nav_list
+            ListView {
+                id: nav_list
                 displaced: Transition {
                     NumberAnimation {
                         properties: "x,y"
@@ -1011,17 +1032,17 @@ Item {
                 }
                 anchors.fill: parent
                 interactive: false
-                model:d.handleItems()
+                model: d.handleItems()
                 boundsBehavior: ListView.StopAtBounds
                 highlightMoveDuration: FluTheme.animationEnabled && d.animDisabled ? 167 : 0
-                highlight: Item{
+                highlight: Item {
                     clip: true
-                    Rectangle{
+                    Rectangle {
                         height: 18
                         radius: 1.5
                         color: FluTheme.primaryColor
                         width: 3
-                        anchors{
+                        anchors {
                             verticalCenter: parent.verticalCenter
                             left: parent.left
                             leftMargin: 6
@@ -1029,36 +1050,36 @@ Item {
                     }
                 }
                 currentIndex: -1
-                delegate: FluLoader{
+                delegate: FluLoader {
                     property var model: modelData
                     property var _idx: index
                     property int type: 0
                     sourceComponent: {
-                        if(model === null || !model)
-                            return undefined
-                        if(modelData instanceof FluPaneItem){
-                            return com_panel_item
+                        if (model === null || !model)
+                            return undefined;
+                        if (modelData instanceof FluPaneItem) {
+                            return com_panel_item;
                         }
-                        if(modelData instanceof FluPaneItemHeader){
-                            return com_panel_item_header
+                        if (modelData instanceof FluPaneItemHeader) {
+                            return com_panel_item_header;
                         }
-                        if(modelData instanceof FluPaneItemSeparator){
-                            return com_panel_item_separatorr
+                        if (modelData instanceof FluPaneItemSeparator) {
+                            return com_panel_item_separatorr;
                         }
-                        if(modelData instanceof FluPaneItemExpander){
-                            return com_panel_item_expander
+                        if (modelData instanceof FluPaneItemExpander) {
+                            return com_panel_item_expander;
                         }
-                        if(modelData instanceof FluPaneItemEmpty){
-                            return com_panel_item_empty
+                        if (modelData instanceof FluPaneItemEmpty) {
+                            return com_panel_item_empty;
                         }
-                        return undefined
+                        return undefined;
                     }
                 }
             }
         }
 
-        ListView{
-            id:layout_footer
+        ListView {
+            id: layout_footer
             clip: true
             width: layout_list.width
             height: childrenRect.height
@@ -1068,279 +1089,282 @@ Item {
             currentIndex: -1
             model: d.handleFooterItems()
             highlightMoveDuration: 150
-            highlight: Item{
+            highlight: Item {
                 clip: true
-                Rectangle{
+                Rectangle {
                     height: 18
                     radius: 1.5
                     color: FluTheme.primaryColor
                     width: 3
-                    anchors{
+                    anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left
                         leftMargin: 6
                     }
                 }
             }
-            delegate: FluLoader{
+            delegate: FluLoader {
                 property var model: modelData
                 property var _idx: index
                 property int type: 1
                 sourceComponent: {
-                    if(modelData instanceof FluPaneItem){
-                        return com_panel_item
+                    if (modelData instanceof FluPaneItem) {
+                        return com_panel_item;
                     }
-                    if(modelData instanceof FluPaneItemHeader){
-                        return com_panel_item_header
+                    if (modelData instanceof FluPaneItemHeader) {
+                        return com_panel_item_header;
                     }
-                    if(modelData instanceof FluPaneItemSeparator){
-                        return com_panel_item_separatorr
+                    if (modelData instanceof FluPaneItemSeparator) {
+                        return com_panel_item_separatorr;
                     }
                 }
             }
         }
     }
-    Popup{
+    Popup {
+        id: control_popup
         property var childModel
-        id:control_popup
         enter: Transition {
             NumberAnimation {
                 property: "opacity"
-                from:0
-                to:1
+                from: 0
+                to: 1
                 duration: 83
             }
         }
-        Connections{
+        Connections {
             target: d
-            function onIsCompactChanged(){
-                if(!d.isCompact){
-                    control_popup.close()
+            function onIsCompactChanged() {
+                if (!d.isCompact) {
+                    control_popup.close();
                 }
             }
         }
         padding: 0
         focus: true
-        contentItem: FluClip{
-            radius: [5,5,5,5]
-            ListView{
-                id:list_view
+        contentItem: FluClip {
+            radius: [5, 5, 5, 5]
+            ListView {
+                id: list_view
                 anchors.fill: parent
                 clip: true
                 currentIndex: -1
                 model: control_popup.childModel
                 boundsBehavior: ListView.StopAtBounds
                 ScrollBar.vertical: FluScrollBar {}
-                delegate:Button{
-                    id:item_button
+                delegate: Button {
+                    id: item_button
                     width: 180
                     height: 38
-                    focusPolicy:Qt.TabFocus
-                    background: Rectangle{
-                        color:  {
-                            if(item_button.hovered){
-                                return FluTheme.itemHoverColor
+                    focusPolicy: Qt.TabFocus
+                    background: Rectangle {
+                        color: {
+                            if (item_button.hovered) {
+                                return FluTheme.itemHoverColor;
                             }
-                            return FluTheme.itemNormalColor
+                            return FluTheme.itemNormalColor;
                         }
-                        FluFocusRectangle{
+                        FluFocusRectangle {
                             visible: item_button.activeFocus
-                            radius:4
+                            radius: 4
                         }
-                        FluLoader{
-                            id:item_dot_loader
-                            anchors{
+                        FluLoader {
+                            id: item_dot_loader
+                            anchors {
                                 right: parent.right
                                 verticalCenter: parent.verticalCenter
                                 rightMargin: 10
                             }
                             sourceComponent: {
-                                if(model.infoBadge){
-                                    return model.infoBadge
+                                if (model.infoBadge) {
+                                    return model.infoBadge;
                                 }
-                                return undefined
+                                return undefined;
                             }
                         }
                     }
-                    contentItem: FluText{
-                        text:modelData.title
+                    contentItem: FluText {
+                        text: modelData.title
                         elide: Text.ElideRight
                         rightPadding: item_dot_loader.width
                         verticalAlignment: Qt.AlignVCenter
-                        anchors{
+                        anchors {
                             verticalCenter: parent.verticalCenter
                         }
                     }
                     onClicked: {
-                        if(modelData.onTapListener){
-                            modelData.onTapListener()
-                        }else{
-                            modelData.tap()
-                            nav_list.currentIndex = _idx
-                            layout_footer.currentIndex = -1
-                            if(d.isMinimal || d.isCompact){
-                                d.enableNavigationPanel = false
+                        if (modelData.onTapListener) {
+                            modelData.onTapListener();
+                        } else {
+                            modelData.tap();
+                            nav_list.currentIndex = _idx;
+                            layout_footer.currentIndex = -1;
+                            if (d.isMinimal || d.isCompact) {
+                                d.enableNavigationPanel = false;
                             }
                         }
-                        control_popup.close()
+                        control_popup.close();
                     }
                 }
             }
         }
-        background: Rectangle{
+        background: Rectangle {
             implicitWidth: 180
-            color:FluTheme.dark ? Qt.rgba(45/255,45/255,45/255,1) : Qt.rgba(252/255,252/255,252/255,1)
-            border.color: FluTheme.dark ? Qt.rgba(26/255,26/255,26/255,1) : Qt.rgba(191/255,191/255,191/255,1)
+            color: FluTheme.dark ? Qt.rgba(45 / 255, 45 / 255, 45 / 255, 1) : Qt.rgba(252 / 255, 252 / 255, 252 / 255, 1)
+            border.color: FluTheme.dark ? Qt.rgba(26 / 255, 26 / 255, 26 / 255, 1) : Qt.rgba(191 / 255, 191 / 255, 191 / 255, 1)
             border.width: 1
             radius: 5
-            FluShadow{}
+            FluShadow {}
         }
-        function showPopup(pos,height,model){
-            background.implicitHeight = height
-            control_popup.x = pos.x
-            control_popup.y = pos.y
-            control_popup.childModel = model
-            control_popup.open()
+        function showPopup(pos, height, model) {
+            background.implicitHeight = height;
+            control_popup.x = pos.x;
+            control_popup.y = pos.y;
+            control_popup.childModel = model;
+            control_popup.open();
         }
     }
-    FluLoader{
+    FluLoader {
+        id: loader_item_menu
         property var modelData
-        id:loader_item_menu
     }
-    Connections{
-        id:connection_item_menu
-        function onVisibleChanged(visible){
-            if(target.visible === false){
-                loader_item_menu.sourceComponent = undefined
+    Connections {
+        id: connection_item_menu
+        function onVisibleChanged(visible) {
+            if (target.visible === false) {
+                loader_item_menu.sourceComponent = undefined;
             }
         }
     }
-    Component{
-        id:com_placeholder
-        Item{
+    Component {
+        id: com_placeholder
+        Item {
             property int launchMode: FluPageType.SingleInstance
             property string url
         }
     }
-    function collapseAll(){
-        for(var i=0;i<nav_list.model.length;i++){
-            var item = nav_list.model[i]
-            if(item instanceof FluPaneItemExpander){
-                item.isExpand = false
+    function collapseAll() {
+        for (var i = 0; i < nav_list.model.length; i++) {
+            var item = nav_list.model[i];
+            if (item instanceof FluPaneItemExpander) {
+                item.isExpand = false;
             }
         }
     }
-    function setCurrentIndex(index){
-        var item = nav_list.model[index]
-        if(item.url){
-            nav_list.currentIndex = index
-            if(item instanceof FluPaneItem){
-                item.tap()
+    function setCurrentIndex(index) {
+        var item = nav_list.model[index];
+        if (item.url) {
+            nav_list.currentIndex = index;
+            if (item instanceof FluPaneItem) {
+                item.tap();
             }
-        }else{
-            item.onTapListener()
+        } else {
+            item.onTapListener();
         }
     }
-    function getItems(){
-        return nav_list.model
+    function getItems() {
+        return nav_list.model;
     }
-    function getCurrentIndex(){
-        return nav_list.currentIndex
+    function getCurrentIndex() {
+        return nav_list.currentIndex;
     }
-    function getCurrentUrl(){
-        if(pageMode === FluNavigationViewType.Stack){
-            var nav_stack = loader_content.item.navStack()
-            if(nav_stack.currentItem){
-                return nav_stack.currentItem.url
+    function getCurrentUrl() {
+        if (pageMode === FluNavigationViewType.Stack) {
+            var nav_stack = loader_content.item.navStack();
+            if (nav_stack.currentItem) {
+                return nav_stack.currentItem.url;
             }
-        }else if(pageMode === FluNavigationViewType.NoStack){
-            return loader_content.source.toString()
+        } else if (pageMode === FluNavigationViewType.NoStack) {
+            return loader_content.source.toString();
         }
-        return undefined
+        return undefined;
     }
-    function push(url,argument={}){
-        function stackPush(){
-            var nav_stack = loader_content.item.navStack()
-            var nav_stack2 = loader_content.item.navStack2()
-            var page = nav_stack.find(function(item) {
+    function push(url, argument = {}) {
+        function stackPush() {
+            var nav_stack = loader_content.item.navStack();
+            var nav_stack2 = loader_content.item.navStack2();
+            var page = nav_stack.find(function (item) {
                 return item.url === url;
-            })
-            if(page){
-                switch(page.launchMode)
-                {
+            });
+            if (page) {
+                switch (page.launchMode) {
                 case FluPageType.SingleTask:
-                    while(nav_stack.currentItem !== page)
-                    {
-                        nav_stack.pop()
-                        d.stackItems = d.stackItems.slice(0, -1)
+                    while (nav_stack.currentItem !== page) {
+                        nav_stack.pop();
+                        d.stackItems = d.stackItems.slice(0, -1);
                     }
-                    return
+                    return;
                 case FluPageType.SingleTop:
-                    if (nav_stack.currentItem.url === url){
-                        return
+                    if (nav_stack.currentItem.url === url) {
+                        return;
                     }
-                    break
+                    break;
                 case FluPageType.Standard:
                 default:
                 }
             }
-            var pageIndex = -1
-            for(var i=0;i<nav_stack2.children.length;i++){
-                var item =  nav_stack2.children[i]
-                if(item.url === url){
-                    pageIndex = i
-                    break
+            var pageIndex = -1;
+            for (var i = 0; i < nav_stack2.children.length; i++) {
+                var item = nav_stack2.children[i];
+                if (item.url === url) {
+                    pageIndex = i;
+                    break;
                 }
             }
-            var options = Object.assign(argument,{url:url})
-            if(pageIndex!==-1){
-                nav_stack2.currentIndex = pageIndex
-                nav_stack.push(com_placeholder,options)
-            }else{
-                var comp = Qt.createComponent(url)
+            var options = Object.assign(argument, {
+                url: url
+            });
+            if (pageIndex !== -1) {
+                nav_stack2.currentIndex = pageIndex;
+                nav_stack.push(com_placeholder, options);
+            } else {
+                var comp = Qt.createComponent(url);
                 if (comp.status === Component.Ready) {
-                    var obj  = comp.createObject(nav_stack,options)
-                    if(obj.launchMode === FluPageType.SingleInstance){
-                        nav_stack.push(com_placeholder,options)
-                        nav_stack2.children.push(obj)
-                        nav_stack2.currentIndex = nav_stack2.count - 1
-                    }else{
-                        nav_stack.push(obj)
+                    var obj = comp.createObject(nav_stack, options);
+                    if (obj.launchMode === FluPageType.SingleInstance) {
+                        nav_stack.push(com_placeholder, options);
+                        nav_stack2.children.push(obj);
+                        nav_stack2.currentIndex = nav_stack2.count - 1;
+                    } else {
+                        nav_stack.push(obj);
                     }
-                }else{
-                    console.error(comp.errorString())
+                } else {
+                    console.error(comp.errorString());
                 }
             }
-            d.stackItems = d.stackItems.concat(nav_list.model[nav_list.currentIndex])
+            d.stackItems = d.stackItems.concat(nav_list.model[nav_list.currentIndex]);
         }
-        function noStackPush(){
-            if(loader_content.source.toString() === url){
-                return
+        function noStackPush() {
+            if (loader_content.source.toString() === url) {
+                return;
             }
-            loader_content.setSource(url,argument)
-            var obj = nav_list.model[nav_list.currentIndex]
-            obj._ext = {url:url,argument:argument}
-            d.stackItems = d.stackItems.concat(obj)
+            loader_content.setSource(url, argument);
+            var obj = nav_list.model[nav_list.currentIndex];
+            obj._ext = {
+                url: url,
+                argument: argument
+            };
+            d.stackItems = d.stackItems.concat(obj);
         }
-        if(pageMode === FluNavigationViewType.Stack){
-            stackPush()
-        }else if(pageMode === FluNavigationViewType.NoStack){
-            noStackPush()
+        if (pageMode === FluNavigationViewType.Stack) {
+            stackPush();
+        } else if (pageMode === FluNavigationViewType.NoStack) {
+            noStackPush();
         }
     }
-    function startPageByItem(data){
-        var items = getItems()
-        for(var i=0;i<items.length;i++){
-            var item =  items[i]
-            if(item.key === data.key){
-                if(getCurrentIndex() === i){
-                    return
+    function startPageByItem(data) {
+        var items = getItems();
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (item.key === data.key) {
+                if (getCurrentIndex() === i) {
+                    return;
                 }
-                setCurrentIndex(i)
-                if(item._parent && !d.isCompactAndNotPanel){
-                    item._parent.isExpand = true
+                setCurrentIndex(i);
+                if (item._parent && !d.isCompactAndNotPanel) {
+                    item._parent.isExpand = true;
                 }
-                return
+                return;
             }
         }
     }

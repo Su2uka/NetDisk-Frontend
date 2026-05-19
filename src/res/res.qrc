@@ -1,1 +1,37 @@
-<RCC/>
+<RCC>
+    <qresource prefix="/img">
+        <!-- 应用图标 -->
+        <file>icon/cloud-app-icon.ico</file>
+        <file>icon/cloud-app-icon.png</file>
+        <file>icon/cloud-app-icon.svg</file>
+        <file>icon/cloud-logo.svg</file>
+        <file>icon/cloud-ui-icon.svg</file>
+
+        <!-- 用户 -->
+        <file>image/User.svg</file>
+
+        <!-- 文件类型图标 -->
+        <file>file_type/ft-image.svg</file>
+        <file>file_type/ft-video.svg</file>
+        <file>file_type/ft-audio.svg</file>
+        <file>file_type/ft-word.svg</file>
+        <file>file_type/ft-excel.svg</file>
+        <file>file_type/ft-ppt.svg</file>
+        <file>file_type/ft-pdf.svg</file>
+        <file>file_type/ft-text.svg</file>
+        <file>file_type/ft-code.svg</file>
+        <file>file_type/ft-web.svg</file>
+        <file>file_type/ft-archive.svg</file>
+        <file>file_type/ft-exe.svg</file>
+        <file>file_type/ft-apk.svg</file>
+        <file>file_type/ft-iso.svg</file>
+        <file>file_type/ft-apple-pkg.svg</file>
+        <file>file_type/ft-cad.svg</file>
+        <file>file_type/ft-psd.svg</file>
+        <file>file_type/ft-folder.svg</file>
+        <file>file_type/ft-unknown.svg</file>
+
+        <!-- HTML -->
+        <file>html/service.html</file>
+    </qresource>
+</RCC>

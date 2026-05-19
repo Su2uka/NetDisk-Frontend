@@ -2,10 +2,56 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>App.qml</file>
-        <file>qml/Page/LoginPage.qml</file>
         <file>logo.ico</file>
-        <file>qml/Component/Login/LoginPanel.qml</file>
-        <file>qml/Component/Common/LeftIconTextBox.qml</file>
-        <file>qml/Component/Login/RegisterPanel.qml</file>
+        <file>qml/Splash/SplashPage.qml</file>
+        <file>qml/Splash/SplashLogo.qml</file>
+        <file>qml/Splash/SplashTitle.qml</file>
+        <file>qml/Splash/SplashProgressBar.qml</file>
+        <file>qml/Splash/SplashVersionLabel.qml</file>
+        <file>qml/Auth/LoginPage.qml</file>
+        <file>qml/Auth/ServiceTermsPage.qml</file>
+        <file>qml/Auth/LoginPanel.qml</file>
+        <file>qml/Auth/RegisterPanel.qml</file>
+        <file>qml/Auth/FormValidator.js</file>
+        <file>qml/Main/MainPage.qml</file>
+        <file>qml/Main/Sidebar.qml</file>
+        <file>qml/Main/TopBar.qml</file>
+        <file>qml/Main/NavItems.qml</file>
+        <file>qml/View/Home/HomePage.qml</file>
+        <file>qml/View/Home/StorageCard.qml</file>
+        <file>qml/View/Home/SmartCategories.qml</file>
+        <file>qml/View/Home/RecentFiles.qml</file>
+        <file>qml/Common/IconPivot.qml</file>
+        <file>qml/Common/LeftIconTextBox.qml</file>
+        <file>qml/Common/SearchBox/SearchBox.qml</file>
+        <file>qml/Common/SearchBox/HistoryDelegate.qml</file>
+        <file>qml/Common/SearchBox/CloudResultDelegate.qml</file>
+        <file>qml/View/File/FilePage.qml</file>
+        <file>qml/View/File/Components/FileGridView.qml</file>
+        <file>qml/View/File/Components/FileListView.qml</file>
+        <file>qml/View/File/Components/FileToolBar.qml</file>
+        <file>qml/View/File/Components/FileContextMenu.qml</file>
+        <file>qml/View/File/Components/FileUploadHelper.qml</file>
+        <file>qml/View/File/Components/FileDetailDialog.qml</file>
+        <file>qml/View/File/Components/FileDownloadHelper.qml</file>
+        <file>qml/View/File/Components/CreateFolderDialog.qml</file>
+        <file>qml/View/File/AllFiles/AllFilesView.qml</file>
+        <file>qml/View/File/AllFiles/PathBar.qml</file>
+        <file>qml/View/File/MyShares/MySharesView.qml</file>
+        <file>qml/View/File/Favorites/FavoritesView.qml</file>
+        <file>qml/View/File/RecycleBin/RecycleBinView.qml</file>
+        <file>qml/View/File/RecycleBin/RecycleBinToolBar.qml</file>
+        <file>qml/View/File/RecycleBin/RecycleBinListView.qml</file>
+        <file>qml/View/File/RecycleBin/RecycleBinContextMenu.qml</file>
+        <file>qml/View/Transfer/TransferPage.qml</file>
+        <file>qml/View/Transfer/TransferUploadList.qml</file>
+        <file>qml/View/Transfer/TransferDownloadList.qml</file>
+        <file>qml/View/Transfer/TransferCompletedList.qml</file>
+        <file>qml/View/Transfer/TransferTaskRow.qml</file>
+        <file>qml/View/Home/CategoryDetailPage.qml</file>
+        <file>qml/Common/PillTabBar.qml</file>
+        <file>qml/View/File/Components/ShareDialog.qml</file>
+        <file>qml/Main/ShareSniffDialog.qml</file>
+        <file>qml/Main/ShareSaveDialog.qml</file>
     </qresource>
 </RCC>

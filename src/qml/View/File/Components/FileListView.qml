@@ -17,7 +17,7 @@ Column {
     // ── 信号 ──
     signal toggleSelection(int index)
     signal openFolder(string id, string name)
-    signal openFile(string name)
+    signal openFile(string id, string parentId, string name)
     signal contextMenuRequested(int index)
 
     // ── 函数 ──
@@ -60,8 +60,8 @@ Column {
             spacing: 16
 
             Item {
-                width: 44
-                height: 1
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 1
             }
 
             FluText {
@@ -166,8 +166,8 @@ Column {
 
                     // 复选框
                     Item {
-                        width: 32
-                        height: parent.height
+                        Layout.preferredWidth: 32
+                        Layout.fillHeight: true
 
                         FluCheckBox {
                             anchors.centerIn: parent
@@ -180,16 +180,36 @@ Column {
                         }
                     }
 
-                    // 文件信息 (图标+名称)
+                    // 文件信息 (图标/缩略图 + 名称)
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12
 
-                        Image {
-                            source: model.fileIcon
-                            width: 24
-                            height: 24
-                            sourceSize: Qt.size(24, 24)
+                        // ── 图标/缩略图容器 ──
+                        Item {
+                            Layout.preferredWidth: 24
+                            Layout.preferredHeight: 24
+                            Layout.alignment: Qt.AlignVCenter
+
+                            // 缩略图
+                            Image {
+                                id: listThumbnail
+                                anchors.fill: parent
+                                source: model.thumbnailUrl || ""
+                                visible: status === Image.Ready
+                                fillMode: Image.PreserveAspectCrop
+                                sourceSize: Qt.size(48, 48)
+                                asynchronous: true
+                                cache: false
+                            }
+
+                            // 默认图标
+                            Image {
+                                anchors.fill: parent
+                                source: model.fileIcon
+                                visible: !listThumbnail.visible
+                                sourceSize: Qt.size(24, 24)
+                            }
                         }
 
                         FluText {
@@ -233,7 +253,7 @@ Column {
                         if (model.isFolder)
                             root.openFolder(model.fileId, model.fileName);
                         else
-                            root.openFile(model.fileName);
+                            root.openFile(model.fileId, model.parentId || "", model.fileName);
                     }
                 }
             }

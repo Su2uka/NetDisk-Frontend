@@ -26,6 +26,7 @@ QVariant FileListModel::data(const QModelIndex &index, int role) const
     case FileIdRole:      return item.fileId;
     case FileNameRole:    return item.fileName;
     case FileIconRole:    return item.fileIcon;
+    case ThumbnailUrlRole:return item.thumbnailUrl;
     case IsFolderRole:    return item.isFolder;
     case IsSelectedRole:  return item.isSelected;  // 这是控制界面单列勾选状态的关键分发口
     case CreateTimeRole:  return item.createTime;
@@ -46,6 +47,7 @@ QHash<int, QByteArray> FileListModel::roleNames() const
     roles[FileIdRole] = "fileId";
     roles[FileNameRole] = "fileName";
     roles[FileIconRole] = "fileIcon";
+    roles[ThumbnailUrlRole] = "thumbnailUrl";
     roles[IsFolderRole] = "isFolder";
     roles[IsSelectedRole] = "selected"; // 这里顺应原 QML 中 property 的习惯映射为了 "selected"
     roles[CreateTimeRole] = "createTime";
@@ -70,6 +72,7 @@ void FileListModel::loadData(const QVariantList &data)
         item.fileId = map["fileId"].toString();
         item.fileName = map["fileName"].toString();
         item.fileIcon = map["fileIcon"].toString();
+        item.thumbnailUrl = map["thumbnailUrl"].toString();
         item.isFolder = map["isFolder"].toBool();
         item.isSelected = map["selected"].toBool();
         item.fileSize = map["fileSize"].toLongLong();
@@ -105,6 +108,7 @@ void FileListModel::appendData(const QVariantList &data)
         item.fileId      = map["fileId"].toString();
         item.fileName    = map["fileName"].toString();
         item.fileIcon    = map["fileIcon"].toString();
+        item.thumbnailUrl = map["thumbnailUrl"].toString();
         item.isFolder    = map["isFolder"].toBool();
         item.isSelected  = map["selected"].toBool();
         item.fileSize    = map["fileSize"].toLongLong();
@@ -192,6 +196,7 @@ QVariantMap FileListModel::getFileInfo(int index) const
     info["fileId"] = item.fileId;
     info["fileName"] = item.fileName;
     info["fileIcon"] = item.fileIcon;
+    info["thumbnailUrl"] = item.thumbnailUrl;
     info["isFolder"] = item.isFolder;
     info["isSelected"] = item.isSelected;
     info["createTime"] = item.createTime;
@@ -213,6 +218,18 @@ void FileListModel::removeFileById(const QString &fileId)
             emit selectionChanged();
             emit countChanged();
             return;
+        }
+    }
+}
+
+void FileListModel::updateFileName(const QString &fileId, const QString &newName)
+{
+    for (int i = 0; i < m_items.size(); ++i) {
+        if (m_items[i].fileId == fileId) {
+            m_items[i].fileName = newName;
+            QModelIndex idx = index(i, 0);
+            emit dataChanged(idx, idx, {FileNameRole});
+            break;
         }
     }
 }

@@ -8,6 +8,7 @@ struct FileItem {
     QString fileId;
     QString fileName;
     QString fileIcon;
+    QString thumbnailUrl;
     bool isFolder;
     bool isSelected;
     QString createTime;
@@ -33,7 +34,8 @@ public:
         ModifyTimeRole,
         FileSizeRole,
         FileSizeStrRole,
-        ParentIdRole
+        ParentIdRole,
+        ThumbnailUrlRole
     };
     Q_ENUM(FileRoles)
 
@@ -54,6 +56,7 @@ public:
     Q_INVOKABLE bool hasSelection() const;
     Q_INVOKABLE QVariantMap getFileInfo(int index) const;
     Q_INVOKABLE void removeFileById(const QString &fileId);
+    Q_INVOKABLE void updateFileName(const QString &fileId, const QString &newName);
 
 signals:
     void selectionChanged();

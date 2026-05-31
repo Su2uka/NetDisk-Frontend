@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import FluentUI 1.0
+import "../File/Components"
 import App 1.0
 
 // ── 已完成列表：直接绑定 TransferHistory.model（持久化 C++ 模型） ──
@@ -125,7 +126,24 @@ Item {
         return "#888888";
     }
 
+    function confirmClearHistory() {
+        dangerConfirmDialog.openDialog(
+                    "清空传输记录",
+                    "确定要清空全部 " + TransferHistory.model.count + " 条传输记录吗？此操作不会删除本地文件或网盘文件。",
+                    "清空记录",
+                    "clearHistory",
+                    null);
+    }
+
     // ── 子对象 ──
+    DangerConfirmDialog {
+        id: dangerConfirmDialog
+        onConfirmed: function (action, payload) {
+            if (action === "clearHistory")
+                TransferHistory.clearAll();
+        }
+    }
+
     Column {
         anchors.fill: parent
         spacing: 0
@@ -158,7 +176,7 @@ Item {
                     iconSize: 12
                     font.pixelSize: 12
                     visible: TransferHistory.model.count > 0
-                    onClicked: TransferHistory.clearAll()
+                    onClicked: root.confirmClearHistory()
                 }
             }
         }

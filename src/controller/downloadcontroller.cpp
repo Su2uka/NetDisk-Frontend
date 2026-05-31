@@ -10,7 +10,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonParseError>
+#include <QSaveFile>
+#include <QSslError>
+#include <algorithm>
 #include <memory>
+#include "settingscontroller.h"
+#include "../global/AppConfig.h"
+#include "../service/userstoragepaths.h"
 
 // ── 单例 ──
 DownloadController* DownloadController::instance()
@@ -24,6 +31,19 @@ DownloadController::DownloadController(QObject *parent)
     , m_model(new DownloadListModel(this))
     , m_networkManager(new QNetworkAccessManager(this))
 {
+    connect(m_networkManager, &QNetworkAccessManager::sslErrors, this,
+            [](QNetworkReply *reply, const QList<QSslError> &errors) {
+        QStringList messages;
+        for (const QSslError &error : errors)
+            messages.append(error.errorString());
+        qWarning() << "[下载] SSL 错误:" << reply->url() << messages.join("; ");
+    });
+}
+
+DownloadController::~DownloadController()
+{
+    for (DownloadTask &task : m_model->tasks())
+        cleanupTaskResources(task);
 }
 
 DownloadListModel* DownloadController::model() const
@@ -53,7 +73,7 @@ int DownloadController::maxConcurrent() const
 
 void DownloadController::setMaxConcurrent(int n)
 {
-    m_maxConcurrent = qMax(1, n);
+    m_maxConcurrent = (std::max)(1, n);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -61,6 +81,7 @@ void DownloadController::setMaxConcurrent(int n)
 // ═══════════════════════════════════════════════════════════
 
 void DownloadController::enqueueFile(const QString &fileId,
+                                      const QString &parentId,
                                       const QString &fileName,
                                       const QString &preSignedUrl,
                                       const QString &localSavePath,
@@ -69,6 +90,7 @@ void DownloadController::enqueueFile(const QString &fileId,
     DownloadTask task;
     task.taskId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     task.fileId = fileId;
+    task.parentId = parentId;
     task.fileName = fileName;
     task.preSignedUrl = preSignedUrl;
     task.localSavePath = localSavePath;
@@ -78,6 +100,13 @@ void DownloadController::enqueueFile(const QString &fileId,
     emit pendingCountChanged();
 
     saveDownloadStates();
+
+    // 如果关闭了自动开始下载，将新任务标记为暂停状态
+    if (!SettingsController::instance()->autoStartDownload()) {
+        m_model->updateStatus(task.taskId, DownloadStatus::Paused);
+        return;
+    }
+
     scheduleNext();
 }
 
@@ -93,6 +122,7 @@ void DownloadController::enqueueFolder(const QVariantList &flatFileList,
     for (const QVariant &item : flatFileList) {
         QVariantMap map = item.toMap();
         QString fileId       = map["fileId"].toString();
+        QString parentId     = map["parentId"].toString();
         QString relativePath = map["relativePath"].toString();   // 如 "A/B"
         QString fileName     = map["fileName"].toString();
         QString preSignedUrl = map["preSignedUrl"].toString();
@@ -113,6 +143,8 @@ void DownloadController::enqueueFolder(const QVariantList &flatFileList,
         DownloadTask task;
         task.taskId = QUuid::createUuid().toString(QUuid::WithoutBraces);
         task.fileId = fileId;
+        task.parentId = parentId;
+        task.parentIdKnown = map.contains("parentId");
         task.fileName = fileName;
         task.preSignedUrl = preSignedUrl;
         task.localSavePath = localSavePath;
@@ -132,6 +164,15 @@ void DownloadController::enqueueFolder(const QVariantList &flatFileList,
     emit pendingCountChanged();
 
     saveDownloadStates();
+
+    // 如果关闭了自动开始下载，将新任务标记为暂停状态
+    if (!SettingsController::instance()->autoStartDownload()) {
+        for (const auto &t : tasks) {
+            m_model->updateStatus(t.taskId, DownloadStatus::Paused);
+        }
+        return;
+    }
+
     scheduleNext();
 }
 
@@ -143,7 +184,7 @@ void DownloadController::scheduleNext()
 {
     auto &tasks = m_model->tasks();
 
-    for (int i = 0; i < tasks.count() && m_activeCount < m_maxConcurrent; ++i) {
+    for (int i = 0; i < tasks.size() && m_activeCount < m_maxConcurrent; ++i) {
         if (tasks[i].status == DownloadStatus::Queued) {
             doDownload(tasks[i].taskId);
         }
@@ -187,6 +228,7 @@ void DownloadController::doDownload(const QString &taskId)
 
     // ── 3. 发起 GET 请求（预签名直链，无需 Token） ──
     QNetworkRequest request(QUrl(task.preSignedUrl));
+    request.setTransferTimeout(AppConfig::NETWORK_TIMEOUT);
 
     // 如果有已下载字节，使用 Range 头断点续传
     if (fileOffset > 0) {
@@ -198,9 +240,14 @@ void DownloadController::doDownload(const QString &taskId)
 
     QNetworkReply *reply = m_networkManager->get(request);
     task.reply = reply;
+    const qint64 taskTotalBytes = task.totalBytes;
 
     // 更新状态
     m_model->updateStatus(taskId, DownloadStatus::Downloading);
+    const int syncedPercent = taskTotalBytes > 0
+                                  ? static_cast<int>(fileOffset * 100 / taskTotalBytes)
+                                  : 0;
+    m_model->updateProgress(taskId, fileOffset, taskTotalBytes, syncedPercent);
     m_activeCount++;
     emit activeCountChanged();
     emit pendingCountChanged();
@@ -241,8 +288,10 @@ void DownloadController::doDownload(const QString &taskId)
 
         DownloadTask &task = m_model->tasks()[row];
         if (task.file && task.reply) {
+            if (task.reply->error() != QNetworkReply::NoError)
+                return;
             QByteArray chunk = task.reply->readAll();
-            task.file->write(chunk);
+            writeToTaskFile(taskId, chunk);
         }
     });
 
@@ -266,51 +315,52 @@ void DownloadController::doDownload(const QString &taskId)
 
         DownloadTask &task = m_model->tasks()[row];
 
-        // 如果是暂停导致的 abort，不在这里处理
-        if (task.status == DownloadStatus::Paused) {
+        // 如果是暂停导致的 abort，或写入错误已经主动失败，不在这里重复处理
+        if (task.status == DownloadStatus::Paused || task.status == DownloadStatus::Failed) {
             return;
         }
 
-        bool hasError = (task.reply && task.reply->error() != QNetworkReply::NoError);
-
-        // 检查是否是 OperationCanceledError（用户主动取消/暂停导致的）
-        if (task.reply && task.reply->error() == QNetworkReply::OperationCanceledError) {
-            // 暂停或取消导致的中断，不算错误
-            return;
-        }
+        QNetworkReply *reply = task.reply;
+        const bool hasError = (reply && reply->error() != QNetworkReply::NoError);
+        const QString errMsg = hasError
+                                   ? reply->errorString()
+                                   : QStringLiteral("未知网络错误");
 
         // 读取网络缓冲区中可能残留的数据
-        if (!hasError && task.file && task.reply) {
-            QByteArray remaining = task.reply->readAll();
-            if (!remaining.isEmpty()) {
-                task.file->write(remaining);
-            }
+        if (task.file && reply && reply->error() == QNetworkReply::NoError) {
+            QByteArray remaining = reply->readAll();
+            if (!writeToTaskFile(taskId, remaining))
+                return;
         }
 
-        // 关闭文件流
-        if (task.file) {
-            task.file->close();
-            delete task.file;
-            task.file = nullptr;
+        row = m_model->findByTaskId(taskId);
+        if (row < 0) return;
+        DownloadTask &currentTask = m_model->tasks()[row];
+
+        if (!hasError && currentTask.file && !currentTask.file->flush()) {
+            const QString fileErr = currentTask.file->errorString().isEmpty()
+                                        ? QStringLiteral("写入本地文件失败")
+                                        : currentTask.file->errorString();
+            failDownloadTask(taskId, fileErr);
+            return;
         }
 
-        // 清理网络句柄
-        if (task.reply) {
-            task.reply->deleteLater();
-        }
+        const QString fileName = currentTask.fileName;
+        const QString localSavePath = currentTask.localSavePath;
+        const qint64 finalTotal = currentTask.totalBytes > 0 ? currentTask.totalBytes : currentTask.receivedBytes;
+
+        cleanupTaskResources(currentTask);
 
         if (hasError) {
-            QString errMsg = task.reply ? task.reply->errorString() : "未知网络错误";
             m_model->updateError(taskId, errMsg);
-            emit taskFailed(taskId, task.fileName, errMsg);
+            emit taskFailed(taskId, fileName, errMsg);
 
             // 下载失败，删除不完整的文件
-            QFile::remove(task.localSavePath);
+            QFile::remove(localSavePath);
         } else {
-            qint64 finalTotal = task.totalBytes > 0 ? task.totalBytes : task.receivedBytes;
-            m_model->updateStatus(taskId, DownloadStatus::Success);
             m_model->updateProgress(taskId, finalTotal, finalTotal, 100);
-            emit taskSuccess(taskId, task.fileName);
+            m_model->updateStatus(taskId, DownloadStatus::Success);
+            emit taskSuccess(taskId, fileName);
         }
 
         saveDownloadStates();  // 成功后更新状态文件
@@ -484,7 +534,7 @@ void DownloadController::pauseAll()
 
 void DownloadController::releaseSlot()
 {
-    m_activeCount = qMax(0, m_activeCount - 1);
+    m_activeCount = (std::max)(0, m_activeCount - 1);
     emit activeCountChanged();
 }
 
@@ -502,15 +552,65 @@ void DownloadController::cleanupTaskResources(DownloadTask &task)
     }
 }
 
+void DownloadController::failDownloadTask(const QString &taskId, const QString &errorMsg, bool removeLocalFile)
+{
+    int row = m_model->findByTaskId(taskId);
+    if (row < 0)
+        return;
+
+    DownloadTask &task = m_model->tasks()[row];
+    const QString fileName = task.fileName;
+    const QString localSavePath = task.localSavePath;
+    const bool wasActive = (task.status == DownloadStatus::Downloading);
+
+    task.status = DownloadStatus::Failed;
+    cleanupTaskResources(task);
+    m_model->updateError(taskId, errorMsg);
+
+    if (removeLocalFile)
+        QFile::remove(localSavePath);
+
+    emit taskFailed(taskId, fileName, errorMsg);
+    saveDownloadStates();
+
+    if (wasActive) {
+        releaseSlot();
+        scheduleNext();
+    }
+}
+
+bool DownloadController::writeToTaskFile(const QString &taskId, const QByteArray &data)
+{
+    if (data.isEmpty())
+        return true;
+
+    int row = m_model->findByTaskId(taskId);
+    if (row < 0)
+        return false;
+
+    DownloadTask &task = m_model->tasks()[row];
+    if (!task.file)
+        return false;
+
+    const qint64 written = task.file->write(data);
+    if (written != data.size()) {
+        const QString errMsg = task.file->errorString().isEmpty()
+                                   ? QStringLiteral("写入本地文件失败")
+                                   : task.file->errorString();
+        failDownloadTask(taskId, errMsg);
+        return false;
+    }
+
+    return true;
+}
+
 // ═══════════════════════════════════════════════════════════
 //  下载状态持久化
 // ═══════════════════════════════════════════════════════════
 
 QString DownloadController::downloadStatesFilePath() const
 {
-    QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dir);
-    return dir + "/download_states.json";
+    return UserStoragePaths::userDataPath("download_states.json");
 }
 
 void DownloadController::saveDownloadStates()
@@ -525,6 +625,8 @@ void DownloadController::saveDownloadStates()
 
             QJsonObject obj;
             obj["file_id"]        = task.fileId;
+            obj["parent_id"]      = task.parentId;
+            obj["parent_id_known"] = task.parentIdKnown;
             obj["file_name"]      = task.fileName;
             obj["local_save_path"] = task.localSavePath;
             obj["total_bytes"]    = task.totalBytes;
@@ -533,11 +635,17 @@ void DownloadController::saveDownloadStates()
         }
     }
 
-    QFile file(downloadStatesFilePath());
-    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        file.write(QJsonDocument(arr).toJson(QJsonDocument::Compact));
-        file.close();
+    QSaveFile file(downloadStatesFilePath());
+    if (!file.open(QIODevice::WriteOnly))
+        return;
+
+    const QByteArray data = QJsonDocument(arr).toJson(QJsonDocument::Compact);
+    if (file.write(data) != data.size()) {
+        qWarning() << "[下载] 保存断点状态失败:" << file.errorString();
+        return;
     }
+    if (!file.commit())
+        qWarning() << "[下载] 提交断点状态失败:" << file.errorString();
 }
 
 void DownloadController::restorePendingDownloads()
@@ -546,8 +654,16 @@ void DownloadController::restorePendingDownloads()
     if (!file.exists() || !file.open(QIODevice::ReadOnly))
         return;
 
-    QJsonArray arr = QJsonDocument::fromJson(file.readAll()).array();
+    QJsonParseError parseError;
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
     file.close();
+
+    if (parseError.error != QJsonParseError::NoError || !doc.isArray()) {
+        qWarning() << "[恢复] 下载断点文件解析失败:" << parseError.errorString();
+        return;
+    }
+
+    QJsonArray arr = doc.array();
 
     if (arr.isEmpty()) {
         qDebug() << "[恢复] 没有未完成的下载任务";
@@ -559,12 +675,17 @@ void DownloadController::restorePendingDownloads()
     for (const auto &v : arr) {
         QJsonObject obj = v.toObject();
         QString fileId       = obj["file_id"].toString();
+        QString parentId     = obj["parent_id"].toString();
+        bool parentIdKnown   = obj.contains("parent_id_known")
+                                   ? obj["parent_id_known"].toBool(true)
+                                   : true;
         QString fileName     = obj["file_name"].toString();
         QString localSavePath = obj["local_save_path"].toString();
         qint64  totalBytes   = obj["total_bytes"].toVariant().toLongLong();
         qint64  receivedBytes = obj["received_bytes"].toVariant().toLongLong();
 
-        if (fileId.isEmpty()) continue;
+        if (fileId.isEmpty() || fileName.isEmpty() || localSavePath.isEmpty())
+            continue;
 
         // 检查本地文件是否存在（确定已下载字节数）
         QFileInfo fi(localSavePath);
@@ -573,6 +694,8 @@ void DownloadController::restorePendingDownloads()
         DownloadTask task;
         task.taskId       = QUuid::createUuid().toString(QUuid::WithoutBraces);
         task.fileId       = fileId;
+        task.parentId     = parentId;
+        task.parentIdKnown = parentIdKnown;
         task.fileName     = fileName;
         task.localSavePath = localSavePath;
         task.totalBytes   = totalBytes;

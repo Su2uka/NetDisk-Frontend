@@ -143,6 +143,8 @@ Item {
 
         //   4. 注册按钮
         FluFilledButton {
+            id: registerButton
+
             text: "立即注册"
             Layout.fillWidth: true
             Layout.preferredHeight: 40
@@ -159,7 +161,7 @@ Item {
             }
 
             FluTooltip {
-                visible: parent.hovered && !check_agreement.checked
+                visible: registerButton.hovered && !check_agreement.checked
                 text: "请先同意服务条款"
                 delay: 300
             }
@@ -169,7 +171,7 @@ Item {
             }
 
             // 点击缩放反馈
-            scale: pressed ? 0.98 : (hovered ? 1.02 : 1.0)
+            scale: registerButton.pressed ? 0.98 : (registerButton.hovered ? 1.02 : 1.0)
             Behavior on scale {
                 NumberAnimation {
                     duration: 100

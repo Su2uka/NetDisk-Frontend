@@ -87,6 +87,10 @@ void FavoritesController::loadFavorites()
                 item["selected"]    = false;
                 item["fileIcon"]    = fileIconForName(obj["name"].toString(), obj["is_folder"].toBool());
 
+                // 缩略图 URL（仅图片文件）
+                item["thumbnailUrl"] = thumbnailUrlForFile(
+                    item["fileId"].toString(), obj["name"].toString(), obj["is_folder"].toBool());
+
                 item["createTime"] = obj.contains("created_at") ? obj["created_at"].toString() : "";
                 item["modifyTime"] = obj.contains("updated_at") ? obj["updated_at"].toString() : "";
 
@@ -153,6 +157,10 @@ void FavoritesController::loadMoreFavorites()
                 item["isFolder"]    = obj["is_folder"].toBool();
                 item["selected"]    = false;
                 item["fileIcon"]    = fileIconForName(obj["name"].toString(), obj["is_folder"].toBool());
+
+                // 缩略图 URL（仅图片文件）
+                item["thumbnailUrl"] = thumbnailUrlForFile(
+                    item["fileId"].toString(), obj["name"].toString(), obj["is_folder"].toBool());
 
                 item["createTime"] = obj.contains("created_at") ? obj["created_at"].toString() : "";
                 item["modifyTime"] = obj.contains("updated_at") ? obj["updated_at"].toString() : "";
@@ -299,6 +307,21 @@ QString FavoritesController::fileIconForName(const QString &fileName, bool isFol
     if (suffix == "apk") return prefix + "ft-apk.svg";
 
     return prefix + "ft-unknown.svg";
+}
+
+QString FavoritesController::thumbnailUrlForFile(const QString &fileId, const QString &fileName, bool isFolder)
+{
+    if (isFolder || fileId.isEmpty())
+        return QString();
+
+    QString suffix = QFileInfo(fileName).suffix().toLower();
+    static const QStringList imageSuffixes = {
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif"
+    };
+    if (imageSuffixes.contains(suffix))
+        return "image://thumbnail/" + fileId;
+
+    return QString();
 }
 
 QString FavoritesController::formatFileSize(qint64 bytes)

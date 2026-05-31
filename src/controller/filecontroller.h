@@ -20,6 +20,8 @@ class FileController : public QObject
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY hasMoreChanged)
     Q_PROPERTY(bool loadingMore READ loadingMore NOTIFY loadingMoreChanged)
+    Q_PROPERTY(bool searchMode READ searchMode NOTIFY searchModeChanged)
+    Q_PROPERTY(QString searchKeyword READ searchKeyword NOTIFY searchKeywordChanged)
 
 public:
     explicit FileController(QObject *parent = nullptr);
@@ -41,6 +43,8 @@ public:
     bool loading() const;
     bool hasMore() const;
     bool loadingMore() const;
+    bool searchMode() const;
+    QString searchKeyword() const;
 
     // ── QML Invokables ──
 
@@ -64,12 +68,18 @@ public:
     // 从已缓存的分类数据中按扩展名过滤（客户端筛选，无网络请求）
     Q_INVOKABLE void filterCategoryByExt(const QString &ext);
 
+    // Search
+    Q_INVOKABLE void searchFiles(const QString &keyword);
+    Q_INVOKABLE void searchSuggestions(const QString &keyword);
+    Q_INVOKABLE void clearSearch();
+
     // Upload（职责：仅将任务委派给 UploadController 队列，不做任何 I/O）
     Q_INVOKABLE void uploadFiles(const QList<QUrl> &fileUrls);
     Q_INVOKABLE void uploadFolder(const QUrl &folderUrl);
 
     // Download（向后端换取预签名直链，然后委派给 DownloadController 队列）
     Q_INVOKABLE void requestDownload(const QString &fileId,
+                                      const QString &parentId,
                                       const QString &fileName,
                                       qint64 fileSize,
                                       const QString &saveDirPath);
@@ -86,6 +96,9 @@ public:
     // 新建文件夹
     Q_INVOKABLE void createFolder(const QString &folderName);
 
+    // 重命名文件/文件夹
+    Q_INVOKABLE void renameItem(const QString &fileId, const QString &newName);
+
     // 前往文件位置（从智能目录跳转到文件所在文件夹）
     Q_INVOKABLE void navigateToFileLocation(const QString &parentId);
 
@@ -98,8 +111,14 @@ signals:
     void loadingChanged();
     void hasMoreChanged();
     void loadingMoreChanged();
+    void searchModeChanged();
+    void searchKeywordChanged();
+    void searchSuggestionsReady(const QString &keyword, const QVariantList &results);
+    void searchFailed(const QString &message);
     void trashSuccess(const QString &message);
     void folderCreated(const QString &message);
+    void renameSuccess();
+    void operationFailed(const QString &message);
 
     // 通知 MainPage 导航到文件位置
     void goToFileLocationRequested(const QString &folderId);
@@ -113,9 +132,14 @@ private:
 
     /// 根据文件名后缀返回对应的文件类型图标路径
     static QString fileIconForName(const QString &fileName, bool isFolder);
+    static QString thumbnailUrlForFile(const QString &fileId, const QString &fileName, bool isFolder);
 
     /// 将字节数格式化为可读字符串（KB/MB/GB）
     static QString formatFileSize(qint64 bytes);
+
+    QVariantMap fileItemFromJson(const QJsonObject &obj) const;
+    QJsonObject baseSearchParams(const QString &keyword, int page, int pageSize) const;
+    void loadMoreSearchFiles();
 
     FileListModel* m_fileModel;
     int m_viewMode = 0;
@@ -127,6 +151,8 @@ private:
     bool m_loadingMore = false;          // 正在加载下一页
     int  m_currentPage = 1;              // 当前已加载的页码
     static const int PAGE_SIZE = 50;     // 每页条数
+    bool m_searchMode = false;
+    QString m_searchKeyword;
     QVariantList m_categoryCache;  // 分类全量缓存，供客户端筛选
     QVariantList m_pendingBreadcrumbs;  // 「前往文件位置」待导航的完整面包屑链
 };

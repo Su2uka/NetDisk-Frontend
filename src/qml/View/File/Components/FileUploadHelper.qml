@@ -1,11 +1,15 @@
 import QtQuick 2.15
 import QtQuick.Dialogs
+import FluentUI 1.0
 import App 1.0
 
 //  FileUploadHelper — 上传对话框 + 完成处理
 
 Item {
     id: root
+
+    // 暴露 root 窗口给 FluInfoBar（Overlay.overlay 需要）
+    property var rootWindow: null
 
     // ── 对外暴露的接口 ──
     function openFileDialog() {
@@ -54,7 +58,19 @@ Item {
 
         function onTaskFailed(taskId, fileName, errorMsg) {
             console.log("上传失败:", fileName, "原因:", errorMsg);
-            // TODO: 弹出错误提示
+            if (infoBarLoader.item) {
+                infoBarLoader.item.showError("上传失败：" + fileName, 4000, errorMsg);
+            }
+        }
+    }
+
+    // 懒加载 FluInfoBar（需要 rootWindow）
+    Loader {
+        id: infoBarLoader
+        active: root.rootWindow !== null
+        sourceComponent: FluInfoBar {
+            property var root: rootWindow
+            // 暴露 showError 给外部调用
         }
     }
 }

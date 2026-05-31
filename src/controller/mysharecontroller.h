@@ -51,6 +51,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void loadData(const QVariantList &data);
+    void appendShares(const QVariantList &data);
     Q_INVOKABLE void toggleSelection(int row);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();

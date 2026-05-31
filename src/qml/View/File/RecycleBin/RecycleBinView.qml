@@ -8,6 +8,37 @@ import App 1.0
 Item {
     id: root
 
+    function confirmPermanentDelete(info, isBatch) {
+        if (isBatch) {
+            dangerConfirmDialog.openDialog(
+                        "永久删除",
+                        "确定要永久删除选中的 " + RecycleBin.selectedCount + " 个项目吗？此操作无法撤销。",
+                        "永久删除",
+                        "deleteSelected",
+                        null);
+            return;
+        }
+
+        dangerConfirmDialog.openDialog(
+                    "永久删除",
+                    "确定要永久删除「" + info.fileName + "」吗？此操作无法撤销。",
+                    "永久删除",
+                    "deleteOne",
+                    info);
+    }
+
+    function confirmEmptyTrash() {
+        if (RecycleBin.trashModel.count <= 0)
+            return;
+
+        dangerConfirmDialog.openDialog(
+                    "清空回收站",
+                    "确定要清空回收站中的 " + RecycleBin.trashModel.count + " 个项目吗？此操作无法撤销。",
+                    "清空回收站",
+                    "emptyTrash",
+                    null);
+    }
+
     // ── 生命周期 ──
     Component.onCompleted: Qt.callLater(RecycleBin.loadTrash)
 
@@ -31,32 +62,28 @@ Item {
                     RecycleBin.restoreFile(info.fileId);
             } else if (action === "delete") {
                 if (RecycleBin.selectedCount > 1)
-                    RecycleBin.deleteSelected();
+                    root.confirmPermanentDelete(info, true);
                 else
-                    RecycleBin.permanentDelete(info.fileId);
+                    root.confirmPermanentDelete(info, false);
             }
+        }
+    }
+
+    DangerConfirmDialog {
+        id: dangerConfirmDialog
+        onConfirmed: function (action, payload) {
+            if (action === "deleteSelected")
+                RecycleBin.deleteSelected();
+            else if (action === "deleteOne" && payload)
+                RecycleBin.permanentDelete(payload.fileId);
+            else if (action === "emptyTrash")
+                RecycleBin.emptyTrash();
         }
     }
 
     Column {
         anchors.fill: parent
         spacing: 0
-
-        // 标题栏
-        Rectangle {
-            width: parent.width
-            height: 48
-            color: "transparent"
-
-            FluText {
-                text: "回收站"
-                font.pixelSize: 18
-                font.bold: true
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                anchors.leftMargin: 20
-            }
-        }
 
         // 工具栏
         RecycleBinToolBar {
@@ -72,9 +99,9 @@ Item {
                 if (action === "放回")
                     RecycleBin.restoreSelected();
                 else if (action === "删除")
-                    RecycleBin.deleteSelected();
+                    root.confirmPermanentDelete(null, true);
                 else if (action === "清空")
-                    RecycleBin.emptyTrash();
+                    root.confirmEmptyTrash();
                 else if (action === "恢复全部")
                     RecycleBin.restoreAll();
             }
@@ -124,12 +151,21 @@ Item {
                 }
             }
 
+            // 空状态
+            FluText {
+                anchors.centerIn: parent
+                text: "暂无回收站文件"
+                font.pixelSize: 14
+                color: "#bbbbbb"
+                visible: FavoritesController.fileModel.count === 0
+            }
+
             FluMenu {
                 id: blankAreaMenu
                 width: 160
                 FluMenuItem {
                     text: "清空回收站"
-                    onClicked: RecycleBin.emptyTrash()
+                    onClicked: root.confirmEmptyTrash()
                 }
                 FluMenuItem {
                     text: "刷新页面"

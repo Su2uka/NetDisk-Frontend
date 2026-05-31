@@ -30,6 +30,11 @@ void NetworkManager::setRefreshToken(const QString &token)
     m_refreshToken = token;
 }
 
+QString NetworkManager::token() const
+{
+    return m_token;
+}
+
 void NetworkManager::handle401Error(std::function<void()> retryFunc, std::function<void(const QString&)> errorCallback)
 {
     if (m_isRefreshing) {
@@ -90,6 +95,57 @@ void NetworkManager::handle401Error(std::function<void()> retryFunc, std::functi
             settings.remove("user/token");
             emit tokenInvalid();
             if (errorCallback) errorCallback("登录状态已过期，请重新登录");
+        }
+    });
+}
+
+void NetworkManager::put(const QString &apiPath, const QJsonObject &params,
+                             std::function<void(const QJsonObject&)> successCallback,
+                             std::function<void(const QString&)> errorCallback)
+{
+    QUrl url(AppConfig::API_BASE + apiPath);
+    QNetworkRequest request(url);
+
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setTransferTimeout(AppConfig::NETWORK_TIMEOUT);
+
+    if (!m_token.isEmpty()) {
+        request.setRawHeader("Authorization", ("Bearer " + m_token).toUtf8());
+    }
+
+    QByteArray data = QJsonDocument(params).toJson();
+    QNetworkReply *reply = m_manager->put(request, data);
+
+    connect(reply, &QNetworkReply::finished, this, [this, apiPath, params, successCallback, errorCallback, reply]() {
+        reply->deleteLater();
+
+        QByteArray responseData = reply->readAll();
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+        if (statusCode == 401 && apiPath != "/auth/refresh") {
+            handle401Error([this, apiPath, params, successCallback, errorCallback]() {
+                put(apiPath, params, successCallback, errorCallback);
+            }, errorCallback);
+            return;
+        }
+
+        if (reply->error() != QNetworkReply::NoError || statusCode >= 400) {
+            QString errMsg = jsonObj.contains("detail") ? jsonObj["detail"].toString() : reply->errorString();
+            errorCallback(errMsg);
+            return;
+        }
+
+        if (jsonObj.contains("code")) {
+            if (jsonObj["code"].toInt() == 200) {
+                successCallback(jsonObj["data"].toObject());
+            } else {
+                errorCallback(jsonObj["msg"].toString());
+            }
+        } else {
+            successCallback(jsonObj);
         }
     });
 }

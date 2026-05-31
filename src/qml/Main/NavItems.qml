@@ -52,10 +52,9 @@ FluObject {
         }
     }
 
-    // 回收站
     FluPaneItem {
-        title: "回收站"
-        icon: FluentIcons.Delete
+        title: "敬请期待"
+        icon: FluentIcons.EmojiTabSmilesAnimals
         iconColor: "#25262b"
         textColor: "#25262b"
         url: "qrc:/qml/View/Home/HomePage.qml"

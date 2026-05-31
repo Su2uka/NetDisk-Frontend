@@ -61,32 +61,32 @@ Item {
             width: parent.width
             height: parent.height - 57
 
-            property bool loaded0: false
-            property bool loaded1: false
-            property bool loaded2: false
+            property bool loadedUpload: false
+            property bool loadedDownload: false
+            property bool loadedCompleted: false
 
             Loader {
                 anchors.fill: parent
-                active: root.currentTab === 0 || item.loaded0
+                active: root.currentTab === 0 || item.loadedUpload
                 visible: root.currentTab === 0
                 source: "TransferUploadList.qml"
-                onLoaded: item.loaded0 = true
+                onLoaded: item.loadedUpload = true
             }
 
             Loader {
                 anchors.fill: parent
-                active: root.currentTab === 1 || item.loaded1
+                active: root.currentTab === 1 || item.loadedDownload
                 visible: root.currentTab === 1
                 source: "TransferDownloadList.qml"
-                onLoaded: item.loaded1 = true
+                onLoaded: item.loadedDownload = true
             }
 
             Loader {
                 anchors.fill: parent
-                active: root.currentTab === 2 || item.loaded2
+                active: root.currentTab === 2 || item.loadedCompleted
                 visible: root.currentTab === 2
                 source: "TransferCompletedList.qml"
-                onLoaded: item.loaded2 = true
+                onLoaded: item.loadedCompleted = true
             }
         }
     }

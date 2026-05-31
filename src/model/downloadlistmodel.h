@@ -19,6 +19,7 @@ enum class DownloadStatus {
 struct DownloadTask {
     QString taskId;                    // 唯一任务 ID（UUID）
     QString fileId;                    // 服务端文件 ID（用于重启后重新获取预签名 URL）
+    QString parentId;                  // 所在文件夹 ID（用于最近文件跳转）
     QString fileName;                  // 文件名
     QString localSavePath;             // 本地保存完整路径
     QString preSignedUrl;              // MinIO/S3 预签名下载直链
@@ -27,6 +28,7 @@ struct DownloadTask {
     int     progress = 0;              // 下载进度百分比 0~100
     DownloadStatus status = DownloadStatus::Queued;
     QString errorMsg;                  // 错误信息
+    bool parentIdKnown = true;         // 是否可以安全跳转到远端所在目录
     QPointer<QNetworkReply> reply;     // 网络请求句柄（用于 abort）
     QFile*  file = nullptr;            // 本地文件写入句柄（边下边写）
 };
@@ -40,14 +42,14 @@ class DownloadListModel : public QAbstractListModel
 
 public:
     // QML 可通过这些角色名访问每一行的数据
-    enum DownloadRoles {
+    enum DownloadRoles : int {
         TaskIdRole = Qt::UserRole + 1,
         FileNameRole,
         TotalBytesRole,
         ReceivedBytesRole,
         ProgressRole,
         StatusRole,
-        ErrorMsgRole
+        ErrorMsgRole,
     };
     Q_ENUM(DownloadRoles)
 

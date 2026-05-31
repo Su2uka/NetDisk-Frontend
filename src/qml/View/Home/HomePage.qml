@@ -26,35 +26,53 @@ Item {
     Component {
         id: homeContent
 
-        FluScrollablePage {
+        Item {
+            id: homeRoot
 
-            StorageCard {
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                Layout.leftMargin: 30
-                Layout.rightMargin: 35
-            }
+            Flickable {
+                id: pageFlickable
+                anchors.fill: parent
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentHeight: contentLayout.height
 
-            SmartCategories {
-                Layout.fillWidth: true
-                Layout.topMargin: 12
-                Layout.leftMargin: 30
-                Layout.rightMargin: 35
+                ScrollBar.vertical: FluScrollBar {}
 
-                onCategoryClicked: function (categoryName, categoryKey) {
-                    homeStack.push(categoryPage, {
-                        categoryName: categoryName,
-                        categoryKey: categoryKey
-                    });
+                ColumnLayout {
+                    id: contentLayout
+                    width: pageFlickable.width
+                    height: Math.max(implicitHeight, pageFlickable.height)
+
+                    StorageCard {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 10
+                        Layout.leftMargin: 30
+                        Layout.rightMargin: 35
+                    }
+
+                    SmartCategories {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 12
+                        Layout.leftMargin: 30
+                        Layout.rightMargin: 35
+
+                        onCategoryClicked: function (categoryName, categoryKey) {
+                            homeStack.push(categoryPage, {
+                                categoryName: categoryName,
+                                categoryKey: categoryKey
+                            });
+                        }
+                    }
+
+                    RecentFiles {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.topMargin: 12
+                        Layout.leftMargin: 30
+                        Layout.rightMargin: 35
+                        Layout.bottomMargin: 12
+                    }
                 }
-            }
-
-            RecentFiles {
-                Layout.fillWidth: true
-                Layout.topMargin: 12
-                Layout.leftMargin: 30
-                Layout.rightMargin: 35
-                Layout.bottomMargin: 12
             }
         }
     }

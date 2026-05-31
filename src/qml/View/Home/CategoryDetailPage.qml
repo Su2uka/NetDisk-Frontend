@@ -43,6 +43,25 @@ Item {
         }
     }
 
+    function confirmMoveToTrash(info, isBatch) {
+        if (isBatch) {
+            dangerConfirmDialog.openDialog(
+                        "放入回收站",
+                        "确定要将选中的 " + FileController.selectedCount + " 个项目放入回收站吗？",
+                        "放入回收站",
+                        "trashSelected",
+                        null);
+            return;
+        }
+
+        dangerConfirmDialog.openDialog(
+                    "放入回收站",
+                    "确定要将「" + info.fileName + "」放入回收站吗？",
+                    "放入回收站",
+                    "trashOne",
+                    info);
+    }
+
     // ── 生命周期 ──
     onCurrentSubIndexChanged: root.applyExtFilter()
     Component.onCompleted: FileController.loadFilesByCategory(root.categoryKey)
@@ -67,7 +86,7 @@ Item {
             text: "下载"
             onClicked: {
                 var info = FileController.fileModel.getFileInfo(contextMenu.targetIndex);
-                downloadHelper.startDownload(info.fileId, info.fileName, info.fileSize);
+                downloadHelper.startDownload(info.fileId, info.fileName, info.fileSize, info.parentId || "");
             }
         }
         FluMenuItem {
@@ -87,8 +106,18 @@ Item {
             textColor: "red"
             onClicked: {
                 var info = FileController.fileModel.getFileInfo(contextMenu.targetIndex);
-                FileController.moveToTrash(info.fileId);
+                root.confirmMoveToTrash(info, false);
             }
+        }
+    }
+
+    DangerConfirmDialog {
+        id: dangerConfirmDialog
+        onConfirmed: function (action, payload) {
+            if (action === "trashSelected")
+                FileController.moveSelectedToTrash();
+            else if (action === "trashOne" && payload)
+                FileController.moveToTrash(payload.fileId);
         }
     }
 
@@ -98,6 +127,7 @@ Item {
 
     FileDownloadHelper {
         id: downloadHelper
+        rootWindow: window
     }
 
     // 布局
@@ -168,7 +198,7 @@ Item {
             onViewModeToggled: FileController.viewMode = FileController.viewMode === 0 ? 1 : 0
             onBatchAction: function (action) {
                 if (action === "删除")
-                    FileController.moveSelectedToTrash();
+                    root.confirmMoveToTrash(null, true);
                 else
                     console.log("批量操作:", action);
             }
@@ -213,7 +243,7 @@ Item {
                             FileController.toggleSelection(index);
                         }
                         onOpenFolder: function (id, name) { /* 分类视图不含文件夹 */ }
-                        onOpenFile: function (name) {
+                        onOpenFile: function (id, parentId, name) {
                             console.log("打开文件:", name);
                         }
                         onContextMenuRequested: function (index) {

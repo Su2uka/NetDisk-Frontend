@@ -65,6 +65,7 @@ private:
     static const int PAGE_SIZE = 50;
 
     static QString fileIconForName(const QString &fileName, bool isFolder);
+    static QString thumbnailUrlForFile(const QString &fileId, const QString &fileName, bool isFolder);
     static QString formatFileSize(qint64 bytes);
 };
 

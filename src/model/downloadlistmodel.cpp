@@ -9,12 +9,12 @@ int DownloadListModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
-    return m_tasks.count();
+    return m_tasks.size();
 }
 
 QVariant DownloadListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= m_tasks.count())
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_tasks.size())
         return QVariant();
 
     const DownloadTask &task = m_tasks[index.row()];
@@ -34,21 +34,22 @@ QVariant DownloadListModel::data(const QModelIndex &index, int role) const
 
 QHash<int, QByteArray> DownloadListModel::roleNames() const
 {
-    QHash<int, QByteArray> roles;
-    roles[TaskIdRole]        = "taskId";
-    roles[FileNameRole]      = "fileName";
-    roles[TotalBytesRole]    = "totalBytes";
-    roles[ReceivedBytesRole] = "receivedBytes";
-    roles[ProgressRole]      = "progress";
-    roles[StatusRole]        = "status";
-    roles[ErrorMsgRole]      = "errorMsg";
+    static const QHash<int, QByteArray> roles = {
+        {TaskIdRole, "taskId"},
+        {FileNameRole, "fileName"},
+        {TotalBytesRole, "totalBytes"},
+        {ReceivedBytesRole, "receivedBytes"},
+        {ProgressRole, "progress"},
+        {StatusRole, "status"},
+        {ErrorMsgRole, "errorMsg"},
+    };
     return roles;
 }
 
 // ── 追加单个任务 ──
 void DownloadListModel::appendTask(const DownloadTask &task)
 {
-    beginInsertRows(QModelIndex(), m_tasks.count(), m_tasks.count());
+    beginInsertRows(QModelIndex(), m_tasks.size(), m_tasks.size());
     m_tasks.append(task);
     endInsertRows();
     emit countChanged();
@@ -60,7 +61,7 @@ void DownloadListModel::appendTasks(const QList<DownloadTask> &tasks)
     if (tasks.isEmpty())
         return;
 
-    beginInsertRows(QModelIndex(), m_tasks.count(), m_tasks.count() + tasks.count() - 1);
+    beginInsertRows(QModelIndex(), m_tasks.size(), m_tasks.size() + tasks.size() - 1);
     m_tasks.append(tasks);
     endInsertRows();
     emit countChanged();
@@ -120,15 +121,18 @@ void DownloadListModel::removeTask(const QString &taskId)
 // ── 移除所有已完成 / 已失败的任务 ──
 void DownloadListModel::removeFinished()
 {
-    for (int i = m_tasks.count() - 1; i >= 0; --i) {
+    bool removed = false;
+    for (int i = m_tasks.size() - 1; i >= 0; --i) {
         auto s = m_tasks[i].status;
         if (s == DownloadStatus::Success || s == DownloadStatus::Failed) {
             beginRemoveRows(QModelIndex(), i, i);
             m_tasks.removeAt(i);
             endRemoveRows();
+            removed = true;
         }
     }
-    emit countChanged();
+    if (removed)
+        emit countChanged();
 }
 
 // ── 直接访问底层数据 ──
@@ -145,7 +149,7 @@ const QList<DownloadTask>& DownloadListModel::tasks() const
 // ── 按 taskId 查找索引 ──
 int DownloadListModel::findByTaskId(const QString &taskId) const
 {
-    for (int i = 0; i < m_tasks.count(); ++i) {
+    for (int i = 0; i < m_tasks.size(); ++i) {
         if (m_tasks[i].taskId == taskId)
             return i;
     }

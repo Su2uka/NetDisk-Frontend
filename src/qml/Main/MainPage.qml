@@ -7,33 +7,45 @@ import App 1.0
 FluWindow {
     id: window
     width: 1050
-    height: 700
+    height: 650
     minimumWidth: 1050
-    minimumHeight: 700
+    minimumHeight: 650
     windowIcon: ""
     backgroundColor: "#fafafa"
+    property bool transfersRestored: false
+
     Component.onCompleted: {
         appBar.color = "#e8e8e9";
-        // 恢复未完成的传输任务
-        UploadController.restorePendingUploads();
-        DownloadController.restorePendingDownloads();
-        // 拉取用户信息（存储概览等）
+        // 先拉取用户信息，拿到 userId 后再恢复用户隔离的数据。
         UserController.fetchUserInfo();
-        // 登录成功进入主页后，才启用剪贴板口令嗅探
+        // 登录成功进入主页后，才启用剪贴板口令嗅探。
         ClipboardController.startMonitoring();
     }
 
-    // ── 剪贴板分享口令嗅探弹窗 ──
+    Connections {
+        target: UserController
+        function onUserInfoChanged() {
+            if (window.transfersRestored || UserController.userId <= 0)
+                return;
+            window.transfersRestored = true;
+            RecentFilesManager.reloadForCurrentUser();
+            TransferHistory.reloadForCurrentUser();
+            UploadController.restorePendingUploads();
+            DownloadController.restorePendingDownloads();
+        }
+    }
+
+    // 剪贴板分享口令嗅探弹窗
     ShareSniffDialog {
         id: shareSniffDialog
     }
 
-    // ── 分享保存弹窗 ──
+    // 分享保存弹窗
     ShareSaveDialog {
         id: shareSaveDialog
     }
 
-    // ── 全局消息提示条 ──
+    // 全局消息提示条
     FluInfoBar {
         id: infoBar
         root: window
@@ -54,7 +66,7 @@ FluWindow {
         }
         function onOwnShareDetected() {
             shareSniffDialog.close();
-            infoBar.showInfo("这是你自己的分享，无需转存哦~", 3000);
+            infoBar.showInfo("这是你自己的分享，无需转存", 3000);
         }
     }
 
@@ -79,6 +91,10 @@ FluWindow {
         anchors.bottom: parent.bottom
 
         onPageSelected: function (url) {
+            if (url === "qrc:/qml/View/File/FilePage.qml") {
+                FileController.clearSearch();
+                Qt.callLater(FileController.loadFiles);
+            }
             pageLoader.source = url;
         }
     }
@@ -89,8 +105,14 @@ FluWindow {
         anchors.left: sidebar.right
         anchors.right: parent.right
         anchors.top: parent.top
-        onSearchClicked: function (keyword) {
-            console.log("搜索关键词:", keyword);
+        onFileSelected: function (fileInfo) {
+            if (!fileInfo)
+                return;
+            var targetFolderId = fileInfo.isFolder ? fileInfo.fileId : fileInfo.parentId;
+            FileController.navigateToFileLocation(targetFolderId || "");
+        }
+        onSettingsRequested: {
+            pageLoader.source = "qrc:/qml/View/Settings/SettingsPage.qml";
         }
     }
 
@@ -109,18 +131,28 @@ FluWindow {
         Connections {
             target: FileController
             function onGoToFileLocationRequested(folderId) {
-                // folderId 已在 C++ 端 navigateToFileLocation() 中写入 m_pendingBreadcrumbs，
-                // AllFilesView.onCompleted 会自动调用 loadFiles()，通过 currentFolderId() 读取。
                 pageLoader.source = "qrc:/qml/View/File/FilePage.qml";
-                sidebar.navigationView.setCurrentIndex(1); // 切换侧边栏到"文件"
+                sidebar.navigationView.setCurrentIndex(1);
             }
         }
 
-        // 当前默认加载 Home 页面
         Loader {
             id: pageLoader
             anchors.fill: parent
             source: "qrc:/qml/View/Home/HomePage.qml"
+            onLoaded: {
+                if (pageLoader.prevItem && pageLoader.prevItem.settingsBackRequested) {
+                    pageLoader.prevItem.settingsBackRequested.disconnect(pageLoader._onSettingsBack);
+                }
+                if (item && item.settingsBackRequested) {
+                    item.settingsBackRequested.connect(pageLoader._onSettingsBack);
+                }
+                pageLoader.prevItem = item;
+            }
+            property var prevItem: null
+            property var _onSettingsBack: function() {
+                pageLoader.source = "qrc:/qml/View/Home/HomePage.qml";
+            }
         }
     }
 }

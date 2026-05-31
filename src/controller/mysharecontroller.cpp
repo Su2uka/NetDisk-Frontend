@@ -89,6 +89,33 @@ void MyShareModel::loadData(const QVariantList &data)
     emit countChanged();
 }
 
+void MyShareModel::appendShares(const QVariantList &data)
+{
+    if (data.isEmpty()) return;
+    int startRow = m_items.count();
+    beginInsertRows(QModelIndex(), startRow, startRow + data.count() - 1);
+    for (const QVariant &var : data) {
+        QVariantMap map = var.toMap();
+        MyShareItem item;
+        item.shareId    = map["shareId"].toInt();
+        item.shareKey   = map["shareKey"].toString();
+        item.fileId     = map["fileId"].toInt();
+        item.fileName   = map["fileName"].toString();
+        item.fileIcon   = map["fileIcon"].toString();
+        item.isFolder   = map["isFolder"].toBool();
+        item.isSelected = false;
+        item.viewCount  = map["viewCount"].toInt();
+        item.saveCount  = map["saveCount"].toInt();
+        item.createdAt  = map["createdAt"].toString();
+        item.expireAt   = map["expireAt"].toString();
+        item.status     = map["status"].toString();
+        m_items.append(item);
+    }
+    endInsertRows();
+    emit selectionChanged();
+    emit countChanged();
+}
+
 void MyShareModel::toggleSelection(int row)
 {
     if (row < 0 || row >= m_items.count()) return;
@@ -298,7 +325,7 @@ void MyShareController::loadMoreShares()
                 item["status"]     = s["status"].toString();
                 items.append(item);
             }
-            // TODO: appendData — 暂时重新加载全部
+            m_model->appendShares(items);
             m_hasMore = data["has_more"].toBool();
             emit hasMoreChanged();
             m_loadingMore = false;

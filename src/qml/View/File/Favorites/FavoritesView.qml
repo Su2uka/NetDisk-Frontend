@@ -67,7 +67,7 @@ Item {
             iconSource: FluentIcons.Download
             onClicked: {
                 var info = FavoritesController.fileModel.getFileInfo(contextMenu.targetIndex);
-                downloadHelper.startDownload(info.fileId, info.fileName, info.fileSize);
+                downloadHelper.startDownload(info.fileId, info.fileName, info.fileSize, info.parentId || "");
             }
         }
         FluMenuItem {
@@ -81,7 +81,7 @@ Item {
         FluMenuSeparator {}
         FluMenuItem {
             text: "取消收藏"
-            iconSource: FluentIcons.UnFavorite
+            iconSource: FluentIcons.HeartBroken
             textColor: "#e74c3c"
             onClicked: {
                 var info = FavoritesController.fileModel.getFileInfo(contextMenu.targetIndex);
@@ -98,36 +98,13 @@ Item {
 
     FileDownloadHelper {
         id: downloadHelper
+        rootWindow: window
     }
 
     // ── 主布局 ──
     Column {
         anchors.fill: parent
         spacing: 0
-
-        // 标题栏
-        Rectangle {
-            width: parent.width
-            height: 48
-            color: "transparent"
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 12
-
-                FluText {
-                    text: "我的收藏"
-                    font.pixelSize: 18
-                    font.bold: true
-                    color: "#1a1a2e"
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                Item { Layout.fillWidth: true }
-            }
-        }
 
         // 工具栏
         FileToolBar {
@@ -203,7 +180,7 @@ Item {
                             // 双击文件夹 → 跳转到"我的文件"页面
                             FileController.navigateToFileLocation(id);
                         }
-                        onOpenFile: function (name) {
+                        onOpenFile: function (id, parentId, name) {
                             console.log("打开文件:", name);
                         }
                         onContextMenuRequested: function (index) {

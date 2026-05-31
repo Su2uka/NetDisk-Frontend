@@ -25,6 +25,7 @@ public:
 
     /// 入队单文件下载任务
     Q_INVOKABLE void enqueueFile(const QString &fileId,
+                                  const QString &parentId,
                                   const QString &fileName,
                                   const QString &preSignedUrl,
                                   const QString &localSavePath,
@@ -68,6 +69,7 @@ signals:
 
 private:
     explicit DownloadController(QObject *parent = nullptr);
+    ~DownloadController() override;
 
     /// 调度队列：启动排队中的任务直到达到并发上限
     void scheduleNext();
@@ -80,6 +82,8 @@ private:
 
     /// 清理任务的网络和文件资源
     void cleanupTaskResources(DownloadTask &task);
+    void failDownloadTask(const QString &taskId, const QString &errorMsg, bool removeLocalFile = true);
+    bool writeToTaskFile(const QString &taskId, const QByteArray &data);
 
     /// 持久化/恢复下载状态
     void saveDownloadStates();

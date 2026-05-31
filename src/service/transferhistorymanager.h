@@ -103,6 +103,9 @@ public:
     /// 清空所有历史记录
     Q_INVOKABLE void clearAll();
 
+    /// 切换账号后从当前用户目录重新加载历史记录
+    Q_INVOKABLE void reloadForCurrentUser();
+
 private:
     explicit TransferHistoryManager(QObject *parent = nullptr);
 

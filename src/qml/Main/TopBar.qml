@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import FluentUI
 import App 1.0
-import "../Common/SearchBox"
+import "../Common"
 
 Rectangle {
     id: root
@@ -11,8 +11,8 @@ Rectangle {
     color: "#ffffff"
 
     // 信号转发
-    signal searchClicked(string keyword)
-    signal fileSelected(int fileId)
+    signal fileSelected(var fileInfo)
+    signal settingsRequested
 
     // 暴露 searchBox 以便外部调用 loadCloudResults()
     property alias searchBox: searchBox
@@ -30,15 +30,11 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
             Layout.leftMargin: 30
 
-            onSearchTriggered: function (keyword) {
-                root.searchClicked(keyword);
-            }
-            onFileSelected: function (fileId) {
-                root.fileSelected(fileId);
+            onFileSelected: function (fileInfo) {
+                root.fileSelected(fileInfo);
             }
             onCloudSearchRequested: function (keyword) {
-                console.log("[SearchBox] 云端搜索请求:", keyword);
-            // TODO: 接入后端 API，回调 searchBox.loadCloudResults(jsonArray)
+                FileController.searchSuggestions(keyword);
             }
         }
 
@@ -46,7 +42,7 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        // 用户头像区域（阴影 + 点击菜单）
+        // 用户头像区域
         Item {
             id: avatarWrapper
             width: 44
@@ -134,12 +130,23 @@ Rectangle {
                 }
             }
 
-            HoverHandler {
+            MouseArea {
+                anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-            }
 
-            TapHandler {
-                onTapped: avatarMenu.popup()
+                property bool menuWasOpen: false
+
+                onPressed: {
+                    menuWasOpen = avatarMenu.visible;
+                }
+
+                onClicked: {
+                    if (menuWasOpen)
+                        avatarMenu.close();
+                    else {
+                        avatarMenu.popup(avatarWrapper, avatarWrapper.width - avatarMenu.width / 2, avatarWrapper.height + 8);
+                    }
+                }
             }
 
             // 头像下拉菜单
@@ -153,26 +160,31 @@ Rectangle {
                 }
                 FluMenuSeparator {}
                 FluMenuItem {
-                    text: "个人信息"
-                    iconSource: FluentIcons.Contact
-                    onClicked: console.log("[TopBar] 个人信息")
-                }
-                FluMenuItem {
                     text: "设置"
                     iconSource: FluentIcons.Settings
-                    onClicked: console.log("[TopBar] 设置")
+                    onClicked: root.settingsRequested()
                 }
                 FluMenuSeparator {}
                 FluMenuItem {
                     text: "退出登录"
                     iconSource: FluentIcons.SignOut
-                    textColor: "#e74c3c"
                     onClicked: {
                         console.log("[TopBar] 退出登录");
                         LoginController.logout();
                     }
                 }
             }
+        }
+    }
+
+    Connections {
+        target: FileController
+        function onSearchSuggestionsReady(keyword, results) {
+            if (keyword === searchBox.keyword)
+                searchBox.loadCloudResults(results);
+        }
+        function onSearchFailed(message) {
+            searchBox.setCloudLoading(false);
         }
     }
 

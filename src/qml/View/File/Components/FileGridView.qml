@@ -18,6 +18,7 @@ GridView {
     // ── 信号 ──
     signal toggleSelection(int index)
     signal openFolder(string id, string name)
+    signal openFile(string id, string parentId, string name)
     signal contextMenuRequested(int index)
 
     // ── 无限滚动 ──
@@ -85,6 +86,8 @@ GridView {
             onDoubleTapped: {
                 if (model.isFolder)
                     root.openFolder(model.fileId, model.fileName);
+                else
+                    root.openFile(model.fileId, model.parentId || "", model.fileName);
             }
         }
 
@@ -92,13 +95,40 @@ GridView {
             anchors.centerIn: parent
             spacing: 6
 
-            Image {
-                source: model.fileIcon
+            // ── 图标/缩略图容器 ──
+            Item {
                 width: 56
                 height: 56
-                fillMode: Image.PreserveAspectFit
-                sourceSize: Qt.size(56, 56)
                 anchors.horizontalCenter: parent.horizontalCenter
+
+                // 缩略图（仅图片文件有 thumbnailUrl）
+                Rectangle {
+                    id: thumbnailContainer
+                    anchors.fill: parent
+                    radius: 6
+                    clip: true
+                    color: "transparent"
+                    visible: thumbnail.status === Image.Ready
+
+                    Image {
+                        id: thumbnail
+                        anchors.fill: parent
+                        source: model.thumbnailUrl || ""
+                        fillMode: Image.PreserveAspectCrop
+                        sourceSize: Qt.size(120, 120)
+                        asynchronous: true
+                        cache: false
+                    }
+                }
+
+                // 默认文件类型图标（缩略图不可用时显示）
+                Image {
+                    anchors.fill: parent
+                    source: model.fileIcon
+                    visible: !thumbnailContainer.visible
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(56, 56)
+                }
             }
 
             FluText {

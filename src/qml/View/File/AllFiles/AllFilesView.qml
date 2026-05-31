@@ -20,25 +20,62 @@ Item {
                 continue;
             items.push({
                 fileId: info.fileId,
+                parentId: info.parentId || "",
                 fileName: info.fileName,
                 fileSize: info.fileSize,
                 isFolder: info.isFolder
             });
         }
-        if (items.length > 0)
-            downloadHelper.startBatchDownload(items);
+        if (items.length > 0) {
+            downloadHelperLoader.active = true;
+            downloadHelperLoader.item.startBatchDownload(items);
+        }
     }
 
-    Component.onCompleted: Qt.callLater(FileController.loadFiles)
+    function previewInfo(info) {
+        if (!info || info.isFolder) {
+            showError("仅支持预览图片、视频和音频文件");
+            return;
+        }
+        PreviewController.previewFile(info.fileId, info.parentId || "", info.fileName, info.isFolder);
+    }
+
+    function confirmMoveToTrash(info, isBatch) {
+        var selectedCount = FileController.selectedCount;
+        if (isBatch) {
+            dangerConfirmDialog.openDialog(
+                        "放入回收站",
+                        "确定要将选中的 " + selectedCount + " 个项目放入回收站吗？",
+                        "放入回收站",
+                        "trashSelected",
+                        null);
+            return;
+        }
+
+        dangerConfirmDialog.openDialog(
+                    "放入回收站",
+                    "确定要将「" + info.fileName + "」放入回收站吗？",
+                    "放入回收站",
+                    "trashOne",
+                    info);
+    }
+
+    Component.onCompleted: {
+        if (!FileController.searchMode)
+            Qt.callLater(FileController.loadFiles);
+    }
 
 
+    // ── 全局信号统一监听（合并） ──
     Connections {
         target: FileController
+        function onRenameSuccess() {
+            showSuccess("重命名成功");
+        }
         function onTrashSuccess(message) {
             showSuccess(message);
         }
     }
-
     Connections {
         target: ShareController
         function onShowToast(message, isError) {
@@ -49,7 +86,6 @@ Item {
             }
         }
     }
-
     Connections {
         target: FavoritesController
         function onFavOpSuccess(message) {
@@ -59,46 +95,94 @@ Item {
             showError(message);
         }
     }
+    Connections {
+        target: PreviewController
+        function onPreviewReady(previewUrl, mediaType, mimeType, fileName) {
+            previewDialogLoader.active = true;
+            previewDialogLoader.item.openPreview(previewUrl, mediaType, mimeType, fileName);
+        }
+        function onPreviewFailed(message) {
+            showError(message);
+        }
+    }
 
     FileContextMenu {
         id: contextMenu
         onActionTriggered: function (action, index) {
             var info = FileController.fileModel.getFileInfo(index);
-            if (action === "detail") {
-                fileDetailDialog.showDetail(info);
+            if (action === "preview") {
+                root.previewInfo(info);
+            } else if (action === "detail") {
+                detailDialogLoader.active = true;
+                detailDialogLoader.item.showDetail(info);
             } else if (action === "share") {
-                shareDialog.openDialog(info);
+                shareDialogLoader.active = true;
+                shareDialogLoader.item.openDialog(info);
             } else if (action === "download") {
+                downloadHelperLoader.active = true;
                 if (FileController.selectedCount > 1) {
                     root.batchDownloadSelected();
                 } else if (info.isFolder) {
-                    downloadHelper.startFolderDownload(info.fileId, info.fileName);
+                    downloadHelperLoader.item.startFolderDownload(info.fileId, info.fileName);
                 } else {
-                    downloadHelper.startDownload(info.fileId, info.fileName, info.fileSize);
+                    downloadHelperLoader.item.startDownload(info.fileId, info.fileName, info.fileSize, info.parentId || "");
                 }
+            } else if (action === "rename") {
+                renameDialogLoader.active = true;
+                renameDialogLoader.item.openDialog(info);
             } else if (action === "favorite") {
                 FavoritesController.addFavorite(info.fileId);
             } else if (action === "delete") {
                 if (FileController.selectedCount > 1)
-                    FileController.moveSelectedToTrash();
+                    root.confirmMoveToTrash(info, true);
                 else
-                    FileController.moveToTrash(info.fileId);
+                    root.confirmMoveToTrash(info, false);
             } else {
                 console.log(action + ":", index);
             }
         }
     }
 
-    FileDetailDialog {
-        id: fileDetailDialog
+    // ── 懒加载弹窗组件（首次使用时才创建） ──
+
+    Loader {
+        id: renameDialogLoader
+        active: false
+        sourceComponent: Component { RenameDialog {} }
     }
 
-    ShareDialog {
-        id: shareDialog
+    Loader {
+        id: detailDialogLoader
+        active: false
+        sourceComponent: Component { FileDetailDialog {} }
     }
 
-    FileDownloadHelper {
-        id: downloadHelper
+    Loader {
+        id: previewDialogLoader
+        active: false
+        sourceComponent: Component { FilePreviewDialog {} }
+    }
+
+    Loader {
+        id: shareDialogLoader
+        active: false
+        sourceComponent: Component { ShareDialog {} }
+    }
+
+    Loader {
+        id: downloadHelperLoader
+        active: false
+        sourceComponent: Component { FileDownloadHelper { rootWindow: window } }
+    }
+
+    DangerConfirmDialog {
+        id: dangerConfirmDialog
+        onConfirmed: function (action, payload) {
+            if (action === "trashSelected")
+                FileController.moveSelectedToTrash();
+            else if (action === "trashOne" && payload)
+                FileController.moveToTrash(payload.fileId);
+        }
     }
 
     // 布局
@@ -134,7 +218,7 @@ Item {
                 if (action === "下载")
                     root.batchDownloadSelected();
                 else if (action === "删除")
-                    FileController.moveSelectedToTrash();
+                    root.confirmMoveToTrash(null, true);
                 else
                     console.log("批量操作:", action);
             }
@@ -159,8 +243,18 @@ Item {
                         onOpenFolder: function (id, name) {
                             FileController.enterFolder(id, name);
                         }
+                        onOpenFile: function (id, parentId, name) {
+                            root.previewInfo({
+                                fileId: id,
+                                parentId: parentId,
+                                fileName: name,
+                                isFolder: false
+                            });
+                        }
                         onContextMenuRequested: function (index) {
+                            var info = FileController.fileModel.getFileInfo(index);
                             contextMenu.targetIndex = index;
+                            contextMenu.targetIsFolder = info.isFolder;
                             contextMenu.popup();
                         }
                     }
@@ -183,11 +277,18 @@ Item {
                         onOpenFolder: function (id, name) {
                             FileController.enterFolder(id, name);
                         }
-                        onOpenFile: function (name) {
-                            console.log("打开文件:", name);
+                        onOpenFile: function (id, parentId, name) {
+                            root.previewInfo({
+                                fileId: id,
+                                parentId: parentId,
+                                fileName: name,
+                                isFolder: false
+                            });
                         }
                         onContextMenuRequested: function (index) {
+                            var info = FileController.fileModel.getFileInfo(index);
                             contextMenu.targetIndex = index;
+                            contextMenu.targetIsFolder = info.isFolder;
                             contextMenu.popup();
                         }
                     }

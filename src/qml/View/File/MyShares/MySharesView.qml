@@ -138,6 +138,7 @@ Item {
                         iconColor: FluColors.Grey100
                         iconSize: 14
                         font.pixelSize: 13
+                        implicitWidth: 140
                         text: {
                             var fields = ["创建时间", "名称", "浏览量", "保存量"];
                             return "按" + fields[MyShareController.sortField] + "排序";

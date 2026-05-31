@@ -11,10 +11,10 @@ namespace AppConfig {
 
     // API 基础路径配置
 #ifdef QT_DEBUG
-    // 开发环境: 本地服务
+    // 开发环境
     const QString API_BASE = "http://localhost:8000/api/v1";
 #else
-    // 生产环境: 正式服务器
+    // 生产环境
     const QString API_BASE = "http://localhost:8080/api";
 #endif
 

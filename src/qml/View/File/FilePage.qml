@@ -17,6 +17,7 @@ Item {
     // 上传助手（全局唯一实例，FAB 和右键菜单共用）
     FileUploadHelper {
         id: uploadHelper
+        rootWindow: window
         onUploadStarted: function (fileCount) {
             console.log("已加入上传队列:", fileCount, "个文件");
         }
@@ -38,6 +39,7 @@ Item {
                 root.currentIndex = 0;
                 navBar.currentIndex = 0;
             }
+            Qt.callLater(FileController.loadFiles);
         }
     }
 
@@ -83,13 +85,14 @@ Item {
             id: contentLoader
             anchors.fill: parent
             source: pageContainer.pageUrls[root.currentIndex]
+            asynchronous: true
 
             onLoaded: {
                 if (root.currentIndex === 0 && item) {
-                    if (item.uploadHelper !== undefined)
-                        item.uploadHelper = uploadHelper;
-                    if (item.createFolderDialog !== undefined)
-                        item.createFolderDialog = createFolderDialog;
+                    if (item["uploadHelper"] !== undefined) // qmllint disable missing-property
+                        item["uploadHelper"] = uploadHelper;
+                    if (item["createFolderDialog"] !== undefined)
+                        item["createFolderDialog"] = createFolderDialog;
                 }
             }
         }

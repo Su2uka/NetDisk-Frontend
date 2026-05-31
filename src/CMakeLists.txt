@@ -16,8 +16,8 @@ else()
     set(APPLICATION_DIR_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick Network QuickControls2 Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Quick Network QuickControls2 Concurrent)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick Network QuickControls2 Concurrent Multimedia Svg)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Quick Network QuickControls2 Concurrent Multimedia Svg)
 
 
 set(PROJECT_SOURCES
@@ -37,16 +37,26 @@ set(PROJECT_SOURCES
     controller/usercontroller.cpp
     controller/sharecontroller.h
     controller/sharecontroller.cpp
+    controller/previewcontroller.h
+    controller/previewcontroller.cpp
     controller/clipboardcontroller.h
     controller/clipboardcontroller.cpp
     controller/mysharecontroller.h
     controller/mysharecontroller.cpp
     controller/favoritescontroller.h
     controller/favoritescontroller.cpp
+    controller/settingscontroller.h
+    controller/settingscontroller.cpp
     service/transferhistorymanager.h
     service/transferhistorymanager.cpp
+    service/recentfilesmanager.h
+    service/recentfilesmanager.cpp
     service/uploadstatemanager.h
     service/uploadstatemanager.cpp
+    service/userstoragepaths.h
+    service/userstoragepaths.cpp
+    service/thumbnailprovider.h
+    service/thumbnailprovider.cpp
     model/filelistmodel.h
     model/filelistmodel.cpp
     model/uploadlistmodel.h
@@ -80,6 +90,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::QuickControls2
     Qt${QT_VERSION_MAJOR}::Concurrent
+    Qt${QT_VERSION_MAJOR}::Multimedia
+    Qt${QT_VERSION_MAJOR}::Svg
     fluentuiplugin
 )
 

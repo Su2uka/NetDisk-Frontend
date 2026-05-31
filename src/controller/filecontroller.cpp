@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QStringList>
 #include <QUrlQuery>
 
 FileController::FileController(QObject *parent)
@@ -77,7 +78,10 @@ void FileController::setSortField(int field)
     if (m_sortField != field) {
         m_sortField = field;
         emit sortFieldChanged();
-        loadFiles();  // 后端排序，重新加载
+        if (m_searchMode)
+            searchFiles(m_searchKeyword);
+        else
+            loadFiles();  // 后端排序，重新加载
     }
 }
 
@@ -91,7 +95,10 @@ void FileController::setSortAsc(bool asc)
     if (m_sortAsc != asc) {
         m_sortAsc = asc;
         emit sortAscChanged();
-        loadFiles();  // 后端排序，重新加载
+        if (m_searchMode)
+            searchFiles(m_searchKeyword);
+        else
+            loadFiles();  // 后端排序，重新加载
     }
 }
 
@@ -108,6 +115,16 @@ bool FileController::hasMore() const
 bool FileController::loadingMore() const
 {
     return m_loadingMore;
+}
+
+bool FileController::searchMode() const
+{
+    return m_searchMode;
+}
+
+QString FileController::searchKeyword() const
+{
+    return m_searchKeyword;
 }
 
 // ── 供 QML 调用的业务接口 ──
@@ -247,6 +264,8 @@ void FileController::loadFiles()
 
                 // 图标映射
                 item["fileIcon"] = fileIconForName(obj["name"].toString(), obj["is_folder"].toBool());
+                item["thumbnailUrl"] = thumbnailUrlForFile(
+                    item["fileId"].toString(), obj["name"].toString(), obj["is_folder"].toBool());
 
                 // 时间
                 item["createTime"] = obj.contains("created_at") ? obj["created_at"].toString() : "";
@@ -279,6 +298,11 @@ void FileController::loadFiles()
 
 void FileController::loadMoreFiles()
 {
+    if (m_searchMode) {
+        loadMoreSearchFiles();
+        return;
+    }
+
     // 防重复请求：正在加载 或 没有更多数据时直接返回
     if (m_loadingMore || !m_hasMore)
         return;
@@ -333,6 +357,8 @@ void FileController::loadMoreFiles()
                 item["selected"]    = false;
 
                 item["fileIcon"] = fileIconForName(obj["name"].toString(), obj["is_folder"].toBool());
+                item["thumbnailUrl"] = thumbnailUrlForFile(
+                    item["fileId"].toString(), obj["name"].toString(), obj["is_folder"].toBool());
 
                 item["createTime"] = obj.contains("created_at") ? obj["created_at"].toString() : "";
                 item["modifyTime"] = obj.contains("updated_at") ? obj["updated_at"].toString() : "";
@@ -396,6 +422,8 @@ void FileController::loadFilesByCategory(const QString &category)
                 item["selected"]    = false;
 
                 item["fileIcon"] = fileIconForName(obj["name"].toString(), false);
+                item["thumbnailUrl"] = thumbnailUrlForFile(
+                    item["fileId"].toString(), obj["name"].toString(), false);
 
                 // 记录父目录 ID 和名称（用于「前往文件位置」功能）
                 item["parentId"] = obj.contains("parent_id") && !obj["parent_id"].isNull()
@@ -454,6 +482,176 @@ void FileController::filterCategoryByExt(const QString &ext)
     qDebug() << "[智能目录] 客户端筛选 ext:" << ext << "结果:" << filtered.size() << "项";
     m_fileModel->loadData(filtered);
     emit selectionStateChanged();
+}
+
+QVariantMap FileController::fileItemFromJson(const QJsonObject &obj) const
+{
+    QVariantMap item;
+    const bool isFolder = obj["is_folder"].toBool();
+    const QString fileName = obj["name"].toString();
+
+    item["fileId"] = obj["id"].toVariant().toString();
+    item["fileName"] = fileName;
+    item["isFolder"] = isFolder;
+    item["selected"] = false;
+    item["fileIcon"] = fileIconForName(fileName, isFolder);
+    item["thumbnailUrl"] = thumbnailUrlForFile(item["fileId"].toString(), fileName, isFolder);
+    item["parentId"] = obj.contains("parent_id") && !obj["parent_id"].isNull()
+                           ? obj["parent_id"].toVariant().toString()
+                           : "";
+    item["createTime"] = obj.contains("created_at") ? obj["created_at"].toString() : "";
+    item["modifyTime"] = obj.contains("updated_at") ? obj["updated_at"].toString() : "";
+
+    if (isFolder) {
+        item["fileSize"] = 0;
+        item["fileSizeStr"] = "-";
+    } else {
+        const qint64 size = obj["size"].toVariant().toLongLong();
+        item["fileSize"] = size;
+        item["fileSizeStr"] = formatFileSize(size);
+    }
+
+    return item;
+}
+
+QJsonObject FileController::baseSearchParams(const QString &keyword, int page, int pageSize) const
+{
+    QJsonObject params;
+    params["keyword"] = keyword.trimmed();
+    params["include_folders"] = true;
+    params["page"] = page;
+    params["page_size"] = pageSize;
+
+    static const char* sortFields[] = {"name", "created_at", "updated_at", "size"};
+    if (m_sortField >= 0 && m_sortField <= 3)
+        params["sort_by"] = QString(sortFields[m_sortField]);
+    params["order"] = m_sortAsc ? "asc" : "desc";
+
+    return params;
+}
+
+void FileController::searchFiles(const QString &keyword)
+{
+    const QString trimmedKeyword = keyword.trimmed();
+    if (trimmedKeyword.isEmpty()) {
+        clearSearch();
+        loadFiles();
+        return;
+    }
+
+    const bool modeChanged = !m_searchMode;
+    const bool keywordChanged = (m_searchKeyword != trimmedKeyword);
+    m_searchMode = true;
+    m_searchKeyword = trimmedKeyword;
+    if (modeChanged)
+        emit searchModeChanged();
+    if (keywordChanged)
+        emit searchKeywordChanged();
+
+    m_currentPage = 1;
+    m_hasMore = false;
+    emit hasMoreChanged();
+
+    m_loading = true;
+    emit loadingChanged();
+
+    NetworkManager::instance()->get(
+        "/files/search", baseSearchParams(trimmedKeyword, 1, PAGE_SIZE),
+        [this](const QJsonObject &data) {
+            m_loading = false;
+            emit loadingChanged();
+
+            m_hasMore = data["has_more"].toBool(false);
+            emit hasMoreChanged();
+
+            QVariantList items;
+            const QJsonArray fileArray = data["files"].toArray();
+            for (const QJsonValue &val : fileArray)
+                items.append(fileItemFromJson(val.toObject()));
+
+            m_fileModel->loadData(items);
+        },
+        [this](const QString &errMsg) {
+            m_loading = false;
+            emit loadingChanged();
+            emit searchFailed(errMsg);
+            qWarning() << "[搜索] 加载失败:" << errMsg;
+        }
+    );
+}
+
+void FileController::searchSuggestions(const QString &keyword)
+{
+    const QString trimmedKeyword = keyword.trimmed();
+    if (trimmedKeyword.isEmpty()) {
+        emit searchSuggestionsReady(trimmedKeyword, {});
+        return;
+    }
+
+    NetworkManager::instance()->get(
+        "/files/search", baseSearchParams(trimmedKeyword, 1, 8),
+        [this, trimmedKeyword](const QJsonObject &data) {
+            QVariantList results;
+            const QJsonArray fileArray = data["files"].toArray();
+            for (const QJsonValue &val : fileArray)
+                results.append(fileItemFromJson(val.toObject()));
+
+            emit searchSuggestionsReady(trimmedKeyword, results);
+        },
+        [this](const QString &errMsg) {
+            emit searchFailed(errMsg);
+            qWarning() << "[搜索] 联想失败:" << errMsg;
+        }
+    );
+}
+
+void FileController::clearSearch()
+{
+    const bool modeChanged = m_searchMode;
+    const bool keywordChanged = !m_searchKeyword.isEmpty();
+
+    m_searchMode = false;
+    m_searchKeyword.clear();
+
+    if (modeChanged)
+        emit searchModeChanged();
+    if (keywordChanged)
+        emit searchKeywordChanged();
+}
+
+void FileController::loadMoreSearchFiles()
+{
+    if (m_loadingMore || !m_hasMore || m_searchKeyword.isEmpty())
+        return;
+
+    m_loadingMore = true;
+    emit loadingMoreChanged();
+
+    const int nextPage = m_currentPage + 1;
+    NetworkManager::instance()->get(
+        "/files/search", baseSearchParams(m_searchKeyword, nextPage, PAGE_SIZE),
+        [this, nextPage](const QJsonObject &data) {
+            m_loadingMore = false;
+            emit loadingMoreChanged();
+
+            m_currentPage = nextPage;
+            m_hasMore = data["has_more"].toBool(false);
+            emit hasMoreChanged();
+
+            QVariantList items;
+            const QJsonArray fileArray = data["files"].toArray();
+            for (const QJsonValue &val : fileArray)
+                items.append(fileItemFromJson(val.toObject()));
+
+            m_fileModel->appendData(items);
+        },
+        [this](const QString &errMsg) {
+            m_loadingMore = false;
+            emit loadingMoreChanged();
+            emit searchFailed(errMsg);
+            qWarning() << "[搜索] 加载更多失败:" << errMsg;
+        }
+    );
 }
 
 void FileController::navigateToFileLocation(const QString &parentId)
@@ -576,6 +774,7 @@ void FileController::uploadFolder(const QUrl &folderUrl)
 // ════════════════════════════════════════════
 
 void FileController::requestDownload(const QString &fileId,
+                                      const QString &parentId,
                                       const QString &fileName,
                                       qint64 fileSize,
                                       const QString &saveDirPath)
@@ -588,7 +787,7 @@ void FileController::requestDownload(const QString &fileId,
     NetworkManager::instance()->get(
         apiPath, QJsonObject(),
         // 成功回调
-        [fileId, fileName, fileSize, saveDirPath](const QJsonObject &data) {
+        [fileId, parentId, fileName, fileSize, saveDirPath](const QJsonObject &data) {
             QString preSignedUrl = data["download_url"].toString();
 
             if (preSignedUrl.isEmpty()) {
@@ -600,7 +799,7 @@ void FileController::requestDownload(const QString &fileId,
             QString localSavePath = saveDirPath + "/" + fileName;
 
             qDebug() << "[下载] 获取直链成功，入队下载:" << localSavePath;
-            DownloadController::instance()->enqueueFile(fileId, fileName, preSignedUrl, localSavePath, fileSize);
+            DownloadController::instance()->enqueueFile(fileId, parentId, fileName, preSignedUrl, localSavePath, fileSize);
         },
         // 失败回调
         [fileName](const QString &errMsg) {
@@ -817,6 +1016,22 @@ QString FileController::fileIconForName(const QString &fileName, bool isFolder)
     return prefix + "ft-unknown.svg";
 }
 
+QString FileController::thumbnailUrlForFile(const QString &fileId, const QString &fileName, bool isFolder)
+{
+    if (isFolder || fileId.isEmpty())
+        return QString();
+
+    const QString suffix = QFileInfo(fileName).suffix().toLower();
+    static const QStringList imageSuffixes = {
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif"
+    };
+
+    if (imageSuffixes.contains(suffix))
+        return "image://thumbnail/" + fileId;
+
+    return QString();
+}
+
 QString FileController::formatFileSize(qint64 bytes)
 {
     if (bytes < 0)
@@ -896,4 +1111,27 @@ void FileController::moveSelectedToTrash()
     for (const QString &fid : selectedIds) {
         moveToTrash(fid);
     }
+}
+
+void FileController::renameItem(const QString &fileId, const QString &newName)
+{
+    qDebug() << "[重命名] 请求重命名 fileId:" << fileId << "newName:" << newName;
+
+    QJsonObject params;
+    params["name"] = newName;
+
+    QString apiPath = "/files/" + fileId + "/rename";
+
+    NetworkManager::instance()->put(
+        apiPath, params,
+        [this](const QJsonObject &data) {
+            int id = data["id"].toInt();
+            QString updatedName = data["name"].toString();
+            m_fileModel->updateFileName(QString::number(id), updatedName);
+            emit renameSuccess();
+        },
+        [this](const QString &errMsg) {
+            emit operationFailed("重命名失败：" + errMsg);
+        }
+    );
 }

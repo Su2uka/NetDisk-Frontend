@@ -80,6 +80,7 @@ Rectangle {
                     iconSource: modelData.icon
                     iconSize: 14
                     font.pixelSize: 12
+                    implicitWidth: 72
                     onClicked: root.batchAction(modelData.label)
                 }
             }
@@ -101,6 +102,7 @@ Rectangle {
                 iconColor: FluColors.Grey100
                 iconSize: 14
                 font.pixelSize: 13
+                implicitWidth: 140
                 text: {
                     var fields = ["名称", "创建时间", "修改时间", "文件大小"];
                     return "按" + fields[root.sortField] + "排序";

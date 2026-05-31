@@ -2,63 +2,23 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import FluentUI
+import App 1.0
 
 Rectangle {
     id: root
 
-    // ── 属性 ──
-    height: contentColumn.implicitHeight + 20
+    implicitHeight: 220
+    Layout.minimumHeight: 140
     radius: 12
     color: "#ffffff"
     border.color: "#e8eaef"
     border.width: 0.5
 
-    // ── 子对象 ──
     FluShadow {
         radius: 12
     }
 
-    // 数据模型
-    ListModel {
-        id: recentModel
-        ListElement {
-            fileName: "需求规格说明书_v1.2.pdf"
-            fileIcon: "qrc:/file_type/res/file_type/ft-pdf.svg"
-            fileTime: "Today, 14:59"
-        }
-        ListElement {
-            fileName: "首页UI设计稿_终版.png"
-            fileIcon: "qrc:/file_type/res/file_type/ft-image.svg"
-            fileTime: "Today, 14:06"
-        }
-        ListElement {
-            fileName: "首页UI设计稿_终版.psd"
-            fileIcon: "qrc:/file_type/res/file_type/ft-psd.svg"
-            fileTime: "Today, 14:54"
-        }
-        ListElement {
-            fileName: "项目进度表.xlsx"
-            fileIcon: "qrc:/file_type/res/file_type/ft-excel.svg"
-            fileTime: "Yesterday, 18:30"
-        }
-        ListElement {
-            fileName: "会议纪要_0223.docx"
-            fileIcon: "qrc:/file_type/res/file_type/ft-word.svg"
-            fileTime: "Yesterday, 10:15"
-        }
-        ListElement {
-            fileName: "会议纪要_0223.docx"
-            fileIcon: "qrc:/file_type/res/file_type/ft-word.svg"
-            fileTime: "Yesterday, 10:15"
-        }
-        ListElement {
-            fileName: "会议纪要_0223.docx"
-            fileIcon: "qrc:/file_type/res/file_type/ft-word.svg"
-            fileTime: "Yesterday, 10:15"
-        }
-    }
-
-    Column {
+    ColumnLayout {
         id: contentColumn
         anchors {
             fill: parent
@@ -67,56 +27,89 @@ Rectangle {
             topMargin: 16
             bottomMargin: 16
         }
+        spacing: 8
 
         FluText {
             text: "最近文件"
             font.pixelSize: 16
             font.bold: true
             color: "#1a1a2e"
-            bottomPadding: 8
+            Layout.fillWidth: true
         }
 
         ListView {
             id: fileListView
-            width: parent.width
-            height: contentHeight
-            interactive: false
-            model: recentModel
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 56
+            clip: true
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+            model: RecentFilesManager.model
+            visible: RecentFilesManager.model.count > 0
+
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
 
             delegate: ItemDelegate {
                 id: delegateItem
                 width: fileListView.width
-                height: 52
-                padding: 0
+                height: 56
+                leftPadding: 12
+                rightPadding: 12
+                topPadding: 4
+                bottomPadding: 4
 
                 background: Rectangle {
                     anchors.fill: parent
-                    anchors.bottomMargin: 2
-                    anchors.topMargin: 2
+                    anchors.leftMargin: 4
+                    anchors.rightMargin: 4
+                    anchors.topMargin: 3
+                    anchors.bottomMargin: 3
                     color: "#f5f5f5"
                     radius: 6
-                    opacity: delegateItem.hovered ? 1.0 : 0.0
+                    opacity: delegateItem.hovered || tapArea.containsMouse ? 1.0 : 0.0
 
                     Behavior on opacity {
-                        NumberAnimation {
-                            duration: 120
-                        }
+                        NumberAnimation { duration: 120 }
                     }
                 }
 
                 contentItem: RowLayout {
-                    anchors.leftMargin: 4
-                    anchors.rightMargin: 4
-                    anchors.bottomMargin: 4
                     spacing: 12
 
-                    Image {
-                        source: model.fileIcon
+                    Item {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
                         Layout.alignment: Qt.AlignVCenter
-                        fillMode: Image.PreserveAspectFit
-                        sourceSize: Qt.size(28, 28)
+
+                        Rectangle {
+                            id: recentThumbnailClip
+                            anchors.fill: parent
+                            radius: 5
+                            clip: true
+                            color: "transparent"
+                            visible: recentThumbnail.status === Image.Ready
+
+                            Image {
+                                id: recentThumbnail
+                                anchors.fill: parent
+                                source: model.thumbnailUrl || ""
+                                fillMode: Image.PreserveAspectCrop
+                                sourceSize: Qt.size(56, 56)
+                                asynchronous: true
+                                cache: false
+                            }
+                        }
+
+                        Image {
+                            anchors.fill: parent
+                            source: model.fileIcon
+                            visible: !recentThumbnailClip.visible
+                            fillMode: Image.PreserveAspectFit
+                            sourceSize: Qt.size(28, 28)
+                        }
                     }
 
                     FluText {
@@ -136,9 +129,16 @@ Rectangle {
                     }
                 }
 
-                onClicked: console.log("[RecentFiles] Clicked:", model.fileName)
+                MouseArea {
+                    id: tapArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: console.log("[RecentFiles] Clicked:", model.fileName)
+                    onDoubleClicked: FileController.navigateToFileLocation(model.parentId || "")
+                }
 
-                // 底部分割线
                 Rectangle {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
@@ -146,8 +146,22 @@ Rectangle {
                     anchors.leftMargin: 4
                     height: 1
                     color: "#f0f0f0"
-                    visible: index < recentModel.count - 1
+                    visible: index < RecentFilesManager.model.count - 1
                 }
+            }
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 72
+            visible: RecentFilesManager.model.count === 0
+
+            FluText {
+                anchors.centerIn: parent
+                text: "预览或下载文件后会显示在这里"
+                font.pixelSize: 13
+                color: "#8a8f9c"
             }
         }
     }

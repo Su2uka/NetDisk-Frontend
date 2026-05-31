@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QtQml>
+#include <QSettings>
 #include "controller/logincontroller.h"
 #include "controller/filecontroller.h"
 #include "controller/uploadcontroller.h"
@@ -9,10 +10,14 @@
 #include "controller/recyclebincontroller.h"
 #include "controller/usercontroller.h"
 #include "controller/sharecontroller.h"
+#include "controller/previewcontroller.h"
 #include "controller/clipboardcontroller.h"
 #include "controller/mysharecontroller.h"
 #include "controller/favoritescontroller.h"
+#include "controller/settingscontroller.h"
 #include "service/transferhistorymanager.h"
+#include "service/recentfilesmanager.h"
+#include "service/thumbnailprovider.h"
 #include "global/AppConfig.h"
 
 int main(int argc, char *argv[])
@@ -30,11 +35,12 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(AppConfig::ORGANIZATION_NAME);
     QCoreApplication::setOrganizationDomain(AppConfig::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationName(AppConfig::APPLICATION_NAME);
+    QSettings::setDefaultFormat(QSettings::IniFormat);
 
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
-
+    engine.addImportPath(QStringLiteral("qrc:/qml/ThirdParty/QtMediaPlayerDemo"));
     // ── 声明式注册：用 qmlRegisterSingletonInstance 替代 setContextProperty ──
     // 好处：QML 工具链可分析类型、更清晰的模块边界、更好的性能
     const char *uri = "App";
@@ -52,12 +58,21 @@ int main(int argc, char *argv[])
     historyMgr->connectControllers();
     qmlRegisterSingletonInstance(uri, 1, 0, "TransferHistory", historyMgr);
 
+    auto *recentFilesMgr = RecentFilesManager::instance();
+    recentFilesMgr->connectControllers();
+    qmlRegisterSingletonInstance(uri, 1, 0, "RecentFilesManager", recentFilesMgr);
+
     qmlRegisterSingletonInstance(uri, 1, 0, "RecycleBin", RecycleBinController::instance());
     qmlRegisterSingletonInstance(uri, 1, 0, "UserController", UserController::instance());
     qmlRegisterSingletonInstance(uri, 1, 0, "ShareController", ShareController::instance());
+    qmlRegisterSingletonInstance(uri, 1, 0, "PreviewController", new PreviewController(&app));
     qmlRegisterSingletonInstance(uri, 1, 0, "ClipboardController", ClipboardController::instance());
     qmlRegisterSingletonInstance(uri, 1, 0, "MyShareController", MyShareController::instance());
     qmlRegisterSingletonInstance(uri, 1, 0, "FavoritesController", FavoritesController::instance());
+    qmlRegisterSingletonInstance(uri, 1, 0, "SettingsController", SettingsController::instance());
+
+    // ── 缩略图图片提供器 ──
+    engine.addImageProvider("thumbnail", new ThumbnailProvider);
 
     const QUrl url(QStringLiteral("qrc:/App.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

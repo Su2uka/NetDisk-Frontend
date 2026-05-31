@@ -72,12 +72,13 @@ void LoginController::login(const QString &email, const QString &password, bool 
                 if (!refreshToken.isEmpty()) {
                     settings.setValue("user/refresh_token", refreshToken);
                 }
-                qDebug("设置token");
+                qDebug("[登录] 设置 token");
             } else {
                 settings.remove("user/token");
                 settings.remove("user/access_token");
                 settings.remove("user/refresh_token");
-                qDebug("去除token");
+                settings.remove("user/current_user_id");
+                qDebug("[登录] 清除 token");
             }
 
             emit loginSuccess(token);
@@ -134,7 +135,7 @@ void LoginController::checkAutoLogin()
     QString savedRefreshToken = settings.value("user/refresh_token").toString();
 
     if (savedToken.isEmpty()) {
-        qDebug("Token为空");
+        qDebug("[登录] Token 为空，自动登录取消");
         emit autoLoginFailed();
         return;
     }
@@ -157,6 +158,7 @@ void LoginController::checkAutoLogin()
             settings.remove("user/token"); // 清除无效 Token
             settings.remove("user/access_token");
             settings.remove("user/refresh_token");
+            settings.remove("user/current_user_id");
             emit autoLoginFailed();
         }
     );
@@ -176,6 +178,7 @@ void LoginController::logout()
     settings.remove("user/token");
     settings.remove("user/access_token");
     settings.remove("user/refresh_token");
+    settings.remove("user/current_user_id");
     NetworkManager::instance()->setToken("");
     NetworkManager::instance()->setRefreshToken("");
 

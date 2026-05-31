@@ -13,6 +13,7 @@
 #include <QSet>
 #include "../network/networkmanager.h"
 #include "../service/uploadstatemanager.h"
+#include "settingscontroller.h"
 
 // ════════════════════════════════════════════
 //  单例
@@ -102,6 +103,14 @@ void UploadController::enqueueFiles(const QList<QUrl> &fileUrls, const QString &
     m_model->appendTasks(newTasks);
 
     emit pendingCountChanged();
+
+    // 如果关闭了自动开始上传，将新任务标记为暂停状态
+    if (!SettingsController::instance()->autoStartUpload()) {
+        for (const auto &t : newTasks) {
+            m_model->updateStatus(t.taskId, UploadStatus::Paused);
+        }
+        return;
+    }
 
     // 入队完成后，尝试调度
     scheduleNext();
@@ -980,6 +989,9 @@ void UploadController::uploadNextParts(const QString &taskId)
 //  分片上传 阶段 3：上传单个分片
 // ════════════════════════════════════════════
 
+static constexpr int MAX_PART_RETRIES = 3;
+static constexpr int RETRY_BASE_DELAY_MS = 500;
+
 void UploadController::uploadSinglePart(const QString &taskId, int partNumber)
 {
     int row = m_model->findByTaskId(taskId);
@@ -1084,7 +1096,20 @@ void UploadController::uploadSinglePart(const QString &taskId, int partNumber)
                     qWarning() << "[分片上传] 分片" << partNumber
                                << "上传失败:" << reply->errorString();
 
-                    // TODO: 可添加重试逻辑
+                    // 重试逻辑：最多重试 MAX_PART_RETRIES 次，指数退避
+                    int retryCount = reply->property("retryCount").toInt();
+                    if (retryCount < MAX_PART_RETRIES) {
+                        int delayMs = RETRY_BASE_DELAY_MS * (1 << retryCount);
+                        qWarning() << "[分片上传] 分片" << partNumber
+                                   << "将在" << delayMs << "ms后重试 (第" << (retryCount + 1)
+                                   << "/" << MAX_PART_RETRIES << "次)";
+                        QTimer::singleShot(delayMs, this, [this, taskId, partNumber, reply, retryCount]() {
+                            reply->setProperty("retryCount", retryCount + 1);
+                            uploadSinglePart(taskId, partNumber);
+                        });
+                        return;
+                    }
+
                     m_model->updateError(taskId, "分片 " + QString::number(partNumber)
                                                      + " 上传失败: " + reply->errorString());
                     emit taskFailed(taskId, task.fileName, reply->errorString());

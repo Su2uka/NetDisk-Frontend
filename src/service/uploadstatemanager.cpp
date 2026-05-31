@@ -1,4 +1,5 @@
 #include "uploadstatemanager.h"
+#include "userstoragepaths.h"
 
 #include <QDir>
 #include <QFile>
@@ -19,8 +20,7 @@ UploadStateManager* UploadStateManager::instance()
 // ── 状态目录 ──
 QString UploadStateManager::stateDir()
 {
-    QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-                  + "/upload_states";
+    QString dir = UserStoragePaths::userDataDir() + "/upload_states";
     QDir().mkpath(dir);
     return dir;
 }

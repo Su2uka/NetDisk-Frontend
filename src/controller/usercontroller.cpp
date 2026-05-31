@@ -2,6 +2,7 @@
 #include "../network/networkmanager.h"
 #include <QJsonObject>
 #include <QDebug>
+#include <QSettings>
 
 UserController* UserController::instance()
 {
@@ -31,6 +32,9 @@ void UserController::fetchUserInfo()
             m_avatar        = data["avatar"].toString();
             m_totalCapacity = data["total_capacity"].toVariant().toLongLong();
             m_usedCapacity  = data["used_capacity"].toVariant().toLongLong();
+
+            QSettings settings;
+            settings.setValue("user/current_user_id", m_userId);
 
             qDebug() << "[User] 用户信息已更新:"
                      << m_username

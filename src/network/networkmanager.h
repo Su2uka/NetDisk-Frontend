@@ -25,6 +25,10 @@ public:
               const QMap<QString, QString> &extraHeaders,
               std::function<void(const QJsonObject&)> successCallback,
               std::function<void(const QString&)> errorCallback);
+    // PUT
+    void put(const QString &apiPath, const QJsonObject &params,
+             std::function<void(const QJsonObject&)> successCallback,
+             std::function<void(const QString&)> errorCallback);
 
     // GET
     void get(const QString &apiPath, const QJsonObject &params,
@@ -51,6 +55,7 @@ public:
     // 设置全局 Token (登录成功后调用)
     void setToken(const QString &token);
     void setRefreshToken(const QString &token);
+    QString token() const;
 
     // 辅助方法，处理401自动刷新并重试
     void handle401Error(std::function<void()> retryFunc, std::function<void(const QString&)> errorCallback);

@@ -1,4 +1,5 @@
 #include "transferhistorymanager.h"
+#include "userstoragepaths.h"
 #include "../controller/uploadcontroller.h"
 #include "../controller/downloadcontroller.h"
 
@@ -184,13 +185,17 @@ void TransferHistoryManager::clearAll()
     saveToDisk();
 }
 
+void TransferHistoryManager::reloadForCurrentUser()
+{
+    m_model->clear();
+    loadFromDisk();
+}
+
 // ── 持久化 ──
 
 QString TransferHistoryManager::historyFilePath() const
 {
-    QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dir);
-    return dir + "/transfer_history.json";
+    return UserStoragePaths::userDataPath("transfer_history.json");
 }
 
 void TransferHistoryManager::loadFromDisk()

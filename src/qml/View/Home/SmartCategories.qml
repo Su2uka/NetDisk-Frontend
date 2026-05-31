@@ -1,6 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls.Basic
 import FluentUI
 
 Rectangle {
@@ -39,6 +40,8 @@ Rectangle {
         }
 
         Row {
+            id: categoryRow
+
             width: parent.width
             spacing: 12
 
@@ -76,10 +79,17 @@ Rectangle {
 
                 delegate: AbstractButton {
                     id: categoryBtn
-                    width: (parent.width - 3 * parent.spacing) / 4
+
+                    required property string label
+                    required property string categoryKey
+                    required property int iconCode
+                    required property color bgColor
+                    required property color iconColor
+
+                    width: (categoryRow.width - 3 * categoryRow.spacing) / 4
                     height: 45
 
-                    onClicked: root.categoryClicked(model.label, model.categoryKey)
+                    onClicked: root.categoryClicked(categoryBtn.label, categoryBtn.categoryKey)
 
                     MouseArea {
                         anchors.fill: parent
@@ -91,7 +101,7 @@ Rectangle {
 
                     background: Rectangle {
                         radius: 8
-                        color: categoryBtn.hovered ? Qt.darker(model.bgColor, 1.05) : "#f5f5f5"
+                        color: categoryBtn.hovered ? Qt.darker(categoryBtn.bgColor, 1.05) : "#f5f5f5"
                         border.color: "#e8e8e8"
                         border.width: 1
 
@@ -113,20 +123,20 @@ Rectangle {
                                 width: 30
                                 height: 30
                                 radius: 6
-                                color: model.bgColor
+                                color: categoryBtn.bgColor
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     anchors.centerIn: parent
                                     font.family: "Segoe Fluent Icons"
                                     font.pixelSize: 14
-                                    text: String.fromCharCode(model.iconCode)
-                                    color: model.iconColor
+                                    text: String.fromCharCode(categoryBtn.iconCode)
+                                    color: categoryBtn.iconColor
                                 }
                             }
 
                             FluText {
-                                text: model.label
+                                text: categoryBtn.label
                                 font.pixelSize: 14
                                 font.weight: Font.Medium
                                 color: "#333333"

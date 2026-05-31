@@ -6,9 +6,16 @@ FluMenu {
     width: 180
 
     property int targetIndex: -1
+    property bool targetIsFolder: false
 
     signal actionTriggered(string action, int index)
 
+    FluMenuItem {
+        text: "预览"
+        iconSource: FluentIcons.Preview
+        enabled: !root.targetIsFolder
+        onClicked: root.actionTriggered("preview", root.targetIndex)
+    }
     FluMenuItem {
         text: "分享"
         onClicked: root.actionTriggered("share", root.targetIndex)
@@ -24,10 +31,6 @@ FluMenu {
     FluMenuItem {
         text: "重命名"
         onClicked: root.actionTriggered("rename", root.targetIndex)
-    }
-    FluMenuItem {
-        text: "移动"
-        onClicked: root.actionTriggered("move", root.targetIndex)
     }
     FluMenuItem {
         text: "查看详细信息"

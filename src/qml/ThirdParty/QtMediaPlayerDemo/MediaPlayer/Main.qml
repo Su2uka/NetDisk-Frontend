@@ -32,6 +32,8 @@ FluWindow {
     property alias playlistLooped: playbackControl.isPlaylistLooped
     property alias metadataInfo: settingsInfo.metadataInfo
     property alias tracksInfo: settingsInfo.tracksInfo
+    property int visibilityBeforeFullScreen: Window.Windowed
+    property bool componentReady: false
 
     // 自定义 appBar，标题白色
     appBar: FluAppBar {
@@ -63,6 +65,52 @@ FluWindow {
         overlay.visible = true
     }
 
+    function restoreControls() {
+        timer.stop()
+        hideControls.stop()
+        showControls.stop()
+        seeker.showSeeker.stop()
+        seeker.hideSeeker.stop()
+        playbackControl.opacity = 1
+        seeker.opacity = 1
+        background.opacity = videoOutput.fullScreen ? 0.75 : 0.5
+        shadow.opacity = 1
+        playbackControl.anchors.bottomMargin = 0
+        seeker.anchors.bottomMargin = 0
+    }
+
+    function setVideoFullScreen(enabled) {
+        if (enabled && videoOutput.fullScreen && root.visibility === Window.FullScreen)
+            return
+        if (!enabled && !videoOutput.fullScreen && root.visibility !== Window.FullScreen)
+            return
+
+        if (enabled) {
+            visibilityBeforeFullScreen = root.visibility
+            videoOutput.fullScreen = true
+            closeOverlays()
+            restoreControls()
+            root.showFullScreen()
+            return
+        }
+
+        videoOutput.fullScreen = false
+        restoreControls()
+        if (visibilityBeforeFullScreen === Window.Maximized)
+            root.showMaximized()
+        else
+            root.showNormal()
+    }
+
+    function exitVideoFullScreen() {
+        if (videoOutput.fullScreen || root.visibility === Window.FullScreen)
+            setVideoFullScreen(false)
+    }
+
+    function toggleVideoFullScreen() {
+        setVideoFullScreen(!videoOutput.fullScreen)
+    }
+
     function openFile(path, displayName) {
         var name = displayName || ""
         ++currentFile
@@ -77,6 +125,17 @@ FluWindow {
         mediaPlayer.pause()
         root.visibility = Window.Hidden
         event.accepted = false
+    }
+
+    onVisibilityChanged: {
+        if (componentReady && root.visibility !== Window.FullScreen && videoOutput.fullScreen)
+            root.exitVideoFullScreen()
+    }
+
+    Shortcut {
+        sequences: ["Esc"]
+        enabled: videoOutput.fullScreen
+        onActivated: root.exitVideoFullScreen()
     }
 
     MouseArea {
@@ -181,12 +240,7 @@ FluWindow {
         MouseArea {
             anchors.fill: parent
             onDoubleClicked: {
-                if (parent.fullScreen) {
-                    root.showNormal()
-                } else {
-                    root.showFullScreen()
-                }
-                parent.fullScreen = !parent.fullScreen
+                root.toggleVideoFullScreen()
             }
             onClicked: {
                 root.closeOverlays()
@@ -232,8 +286,7 @@ FluWindow {
 
         fullScreenButton.onClicked: {
             if (mediaPlayer.hasVideo) {
-                videoOutput.fullScreen ?  root.showNormal() : root.showFullScreen()
-                videoOutput.fullScreen = !videoOutput.fullScreen
+                root.toggleVideoFullScreen()
             }
         }
 
@@ -380,6 +433,7 @@ FluWindow {
     }
 
     Component.onCompleted: {
+        componentReady = true
         if (source.toString().length > 0)
             root.openFile(source, sourceName)
     }

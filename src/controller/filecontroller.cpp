@@ -26,6 +26,12 @@ FileController::FileController(QObject *parent)
 
 // ── 属性获取与设置 ──
 
+FileController* FileController::instance()
+{
+    static FileController instance;
+    return &instance;
+}
+
 FileListModel* FileController::fileModel() const
 {
     return m_fileModel;
@@ -471,7 +477,6 @@ void FileController::filterCategoryByExt(const QString &ext)
 
         if (ext == "other") {
             // "其他"：不匹配任何已知子分类 — 由 QML 端判断
-            // 这里简单地传 "other"，后续可扩展
             // 暂时跳过 other 的过滤逻辑（显示全部）
             filtered.append(item);
         } else if (fileExt == ext.toLower()) {
@@ -1127,7 +1132,14 @@ void FileController::renameItem(const QString &fileId, const QString &newName)
         [this](const QJsonObject &data) {
             int id = data["id"].toInt();
             QString updatedName = data["name"].toString();
-            m_fileModel->updateFileName(QString::number(id), updatedName);
+            QString fileId = QString::number(id);
+            bool isFolder = data["is_folder"].toBool();
+            m_fileModel->updateFileDisplay(
+                fileId,
+                updatedName,
+                fileIconForName(updatedName, isFolder),
+                thumbnailUrlForFile(fileId, updatedName, isFolder)
+            );
             emit renameSuccess();
         },
         [this](const QString &errMsg) {

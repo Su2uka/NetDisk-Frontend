@@ -75,6 +75,9 @@ Item {
         function onTrashSuccess(message) {
             showSuccess(message);
         }
+        function onOperationFailed(message) {
+            showError(message);
+        }
     }
     Connections {
         target: ShareController

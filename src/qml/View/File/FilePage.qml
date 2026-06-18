@@ -12,9 +12,7 @@ Item {
     // ── 属性 ──
     property int currentIndex: 0
 
-    // ── 子对象 ──
-
-    // 上传助手（全局唯一实例，FAB 和右键菜单共用）
+    // 上传助手（FAB 和右键菜单共用）
     FileUploadHelper {
         id: uploadHelper
         rootWindow: window
@@ -89,7 +87,7 @@ Item {
 
             onLoaded: {
                 if (root.currentIndex === 0 && item) {
-                    if (item["uploadHelper"] !== undefined) // qmllint disable missing-property
+                    if (item["uploadHelper"] !== undefined)
                         item["uploadHelper"] = uploadHelper;
                     if (item["createFolderDialog"] !== undefined)
                         item["createFolderDialog"] = createFolderDialog;

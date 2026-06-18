@@ -35,12 +35,12 @@ Item {
                 source: sourceIcon
 
                 // 阴影配置
-                shadowEnabled: true      // 开启阴影
-                shadowColor: Qt.rgba(0, 0, 0, 0.4)  // 颜色：黑色，半透明 (alpha: 0.4)
-                shadowBlur: 1.0  // 模糊半径：值越大阴影越柔和
-                shadowHorizontalOffset: 0   // 水平偏移：0 表示居中
-                shadowVerticalOffset: 5  // 垂直偏移：正数表示向下偏移，实现底部阴影效果
-                shadowScale: 1.0  // 阴影缩放：1.0 为原大小，小于 1.0 会让阴影看起来稍微收缩一点
+                shadowEnabled: true
+                shadowColor: Qt.rgba(0, 0, 0, 0.4)
+                shadowBlur: 1.0
+                shadowHorizontalOffset: 0
+                shadowVerticalOffset: 5
+                shadowScale: 1.0
             }
         }
 
@@ -158,7 +158,6 @@ Item {
             return;
         }
 
-        console.log("正在登录: " + email);
         LoginController.login(email, password, autoLoginCheck.checked);
     }
 

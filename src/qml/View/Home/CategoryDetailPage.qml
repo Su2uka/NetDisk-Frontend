@@ -10,7 +10,7 @@ import App 1.0
  * CategoryDetailPage — 智能目录详情页
  *
  * 由 HomePage 传入 categoryName 和 categoryKey，
- * 显示该分类下所有文件，支持子分类 PillTabBar 筛选。
+ * 显示该分类下所有文件，支持子类筛选。
  */
 Item {
     id: root

@@ -202,7 +202,7 @@ void NetworkManager::post(const QString &apiPath, const QJsonObject &params,
                 errorCallback(msg);
             }
         } else {
-            // 兜底：如果后端没按规范返回 code，但也成功了 (HTTP 200)
+            //如果后端没按规范返回 code，但也成功了 (HTTP 200)
             successCallback(jsonObj);
         }
     });
@@ -410,7 +410,7 @@ void NetworkManager::get(const QString &apiPath, const QJsonObject &params,
     // 发送 GET 请求
     QNetworkReply *reply = m_manager->get(request);
 
-    // 4. 处理响应 (这里的逻辑和你的 POST 完全保持一致)
+    // 4. 处理响应
     connect(reply, &QNetworkReply::finished, this, [this, apiPath, params, successCallback, errorCallback, reply]() {
         reply->deleteLater();
 

@@ -20,9 +20,15 @@ LoginController::LoginController(QObject *parent)
     });
 }
 
+LoginController* LoginController::instance()
+{
+    static LoginController instance;
+    return &instance;
+}
+
 void LoginController::login(const QString &email, const QString &password, bool autoLogin)
 {
-    // 1. 构建 OAuth2 规范要求的表单数据 (x-www-form-urlencoded)
+    // 1. 构建表单数据 (x-www-form-urlencoded)
     QUrlQuery query;
     query.addQueryItem("username", email);
     query.addQueryItem("password", password);
@@ -45,7 +51,7 @@ void LoginController::login(const QString &email, const QString &password, bool 
         QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
         QJsonObject jsonObj = jsonDoc.object();
 
-        // 处理错误状态 (如 HTTP 400/401)
+        // 处理错误状态
         if (reply->error() != QNetworkReply::NoError) {
             // 提取 FastAPI 抛出的标准 detail 错误字段
             QString errMsg = jsonObj.contains("detail") ? jsonObj["detail"].toString() : "登录失败，请检查网络或账号密码";
@@ -58,7 +64,7 @@ void LoginController::login(const QString &email, const QString &password, bool 
             QString token = jsonObj["access_token"].toString();
             QString refreshToken = jsonObj.contains("refresh_token") ? jsonObj["refresh_token"].toString() : "";
 
-            // 设置 NetworkManager Token (内存中)
+            // 设置 NetworkManager Token
             NetworkManager::instance()->setToken(token);
             if (!refreshToken.isEmpty()) {
                 NetworkManager::instance()->setRefreshToken(refreshToken);
@@ -68,7 +74,7 @@ void LoginController::login(const QString &email, const QString &password, bool 
             QSettings settings;
             if (autoLogin) {
                 settings.setValue("user/access_token", token);
-                settings.setValue("user/token", token); // fallback compatibility
+                settings.setValue("user/token", token);
                 if (!refreshToken.isEmpty()) {
                     settings.setValue("user/refresh_token", refreshToken);
                 }

@@ -5,7 +5,7 @@ FileListModel::FileListModel(QObject *parent)
 {
 }
 
-// 获取当前列表长度（是 QAbstractListModel 要求必须重写的核心接口）
+// 获取当前列表长度
 int FileListModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
@@ -14,7 +14,7 @@ int FileListModel::rowCount(const QModelIndex &parent) const
     return m_items.count();
 }
 
-// 核心数据提供接口：QML 每次渲染或访问一个属性时，都会传入目标行数（index）及需要的角色（role）。此函数负责将内部 C++ 数据精准地装箱转发出去
+// 数据提供接口：QML 每次渲染或访问一个属性时，都会传入目标行数（index）及需要的角色（role）。此函数负责将内部 C++ 数据精准地装箱转发出去
 QVariant FileListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() >= m_items.count())
@@ -229,6 +229,23 @@ void FileListModel::updateFileName(const QString &fileId, const QString &newName
             m_items[i].fileName = newName;
             QModelIndex idx = index(i, 0);
             emit dataChanged(idx, idx, {FileNameRole});
+            break;
+        }
+    }
+}
+
+void FileListModel::updateFileDisplay(const QString &fileId,
+                                      const QString &newName,
+                                      const QString &fileIcon,
+                                      const QString &thumbnailUrl)
+{
+    for (int i = 0; i < m_items.size(); ++i) {
+        if (m_items[i].fileId == fileId) {
+            m_items[i].fileName = newName;
+            m_items[i].fileIcon = fileIcon;
+            m_items[i].thumbnailUrl = thumbnailUrl;
+            QModelIndex idx = index(i, 0);
+            emit dataChanged(idx, idx, {FileNameRole, FileIconRole, ThumbnailUrlRole});
             break;
         }
     }

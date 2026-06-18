@@ -57,6 +57,10 @@ public:
     Q_INVOKABLE QVariantMap getFileInfo(int index) const;
     Q_INVOKABLE void removeFileById(const QString &fileId);
     Q_INVOKABLE void updateFileName(const QString &fileId, const QString &newName);
+    Q_INVOKABLE void updateFileDisplay(const QString &fileId,
+                                       const QString &newName,
+                                       const QString &fileIcon,
+                                       const QString &thumbnailUrl);
 
 signals:
     void selectionChanged();

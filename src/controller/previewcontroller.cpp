@@ -11,6 +11,12 @@ PreviewController::PreviewController(QObject *parent)
 {
 }
 
+PreviewController* PreviewController::instance()
+{
+    static PreviewController instance;
+    return &instance;
+}
+
 void PreviewController::previewFile(const QString &fileId,
                                     const QString &parentId,
                                     const QString &fileName,

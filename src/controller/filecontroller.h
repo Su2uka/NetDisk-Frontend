@@ -24,7 +24,7 @@ class FileController : public QObject
     Q_PROPERTY(QString searchKeyword READ searchKeyword NOTIFY searchKeywordChanged)
 
 public:
-    explicit FileController(QObject *parent = nullptr);
+    static FileController* instance();
 
     FileListModel* fileModel() const;
     int viewMode() const;
@@ -124,6 +124,8 @@ signals:
     void goToFileLocationRequested(const QString &folderId);
 
 private:
+    explicit FileController(QObject *parent = nullptr);
+
     /// 递归串行获取每个文件的预签名 URL，全部完成后批量入队
     void fetchDownloadUrlsAndEnqueue(const QJsonArray &files,
                                       const QString &localRootPath,

@@ -7,7 +7,7 @@ class LoginController : public QObject
 {
     Q_OBJECT
 public:
-    explicit LoginController(QObject *parent = nullptr);
+    static LoginController* instance();
 
     Q_INVOKABLE void login(const QString &email, const QString &password, bool autoLogin);
 
@@ -35,6 +35,7 @@ signals:
     void registerFailed(const QString &errMsg);
 
 private:
+    explicit LoginController(QObject *parent = nullptr);
 };
 
 #endif // LOGINCONTROLLER_H
